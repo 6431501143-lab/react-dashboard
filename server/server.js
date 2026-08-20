@@ -1,0 +1,334 @@
+import express from 'express';
+import cors from 'cors';
+import pg from 'pg';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { QUERIES } from './queries.js';
+import { initLocalDb, getSyncMetadata } from './local_db.js';
+import { 
+  syncSnapshotFromPostgres, 
+  getLocalStagnantData, 
+  getLocalExpiryData, 
+  getLocalInventoryData, 
+  getLocalDispatchData, 
+  getLocalTurnoverData 
+} from './sync_service.js';
+
+// Auto-load .env configuration file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envCandidates = [
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(__dirname, '..', '.env'),
+  path.resolve(__dirname, '.env')
+];
+
+for (const envPath of envCandidates) {
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+        const [key, ...vals] = trimmed.split('=');
+        const val = vals.join('=').trim().replace(/^["']|["']$/g, '');
+        const cleanKey = key.trim();
+        if (cleanKey && !process.env[cleanKey]) {
+          process.env[cleanKey] = val;
+        }
+      }
+    }
+    break;
+  }
+}
+
+const { Pool } = pg;
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
+// Initialize Local SQLite Database
+initLocalDb();
+
+// Active Connection Pool
+let dbPool = null;
+
+// Global read-only query runner
+async function runReadOnlyQuery(sql) {
+  if (!dbPool) {
+    throw new Error('Database is not connected');
+  }
+  const client = await dbPool.connect();
+  try {
+    await client.query('SET default_transaction_read_only = on;');
+    await client.query("SET work_mem = '128MB';");
+    const res = await client.query(sql);
+    return res.rows;
+  } finally {
+    client.release();
+  }
+}
+
+// ================= API ENDPOINTS ================= //
+
+// Health check & DB status
+app.get('/api/health', async (req, res) => {
+  try {
+    const result = await runReadOnlyQuery("SELECT current_database() as db, current_user as user, current_setting('default_transaction_read_only') as read_only;");
+    const syncMeta = getSyncMetadata();
+    res.json({
+      status: 'online',
+      readOnly: result[0].read_only === 'on',
+      database: result[0].db,
+      user: result[0].user,
+      lastSyncedAt: syncMeta.lastSyncedAt,
+      hasLocalData: syncMeta.hasData
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// Snapshot Status Endpoint
+app.get('/api/snapshot/status', (req, res) => {
+  try {
+    const status = getSyncMetadata();
+    res.json({
+      ...status,
+      autoSyncTime: '08:00 น.',
+      nextScheduledSync: nextScheduledSyncTime
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Snapshot Sync Trigger Endpoint
+app.post('/api/snapshot/sync', async (req, res) => {
+  try {
+    const result = await syncSnapshotFromPostgres(runReadOnlyQuery);
+    res.json(result);
+  } catch (err) {
+    console.error('Snapshot sync failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});// 1. Stagnant Stock (สินค้าไม่เคลื่อนไหวเกิน 1 ปี)
+app.get('/api/stagnant', (req, res) => {
+  try {
+    const data = getLocalStagnantData();
+    res.json(data);
+  } catch (err) {
+    console.error('Error fetching stagnant data:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Expired Stock (สินค้าหมดอายุ)
+app.get('/api/expiry', (req, res) => {
+  try {
+    const data = getLocalExpiryData();
+    res.json(data);
+  } catch (err) {
+    console.error('Error fetching expiry data:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Inventory Balance (ยอดสินค้าคงคลัง)
+app.get('/api/inventory', (req, res) => {
+  try {
+    const rawData = getLocalInventoryData();
+    
+    // Map with computed thresholds & days remaining
+    const mapped = rawData.map(r => {
+      const balance = parseFloat(r.balance) || 0;
+      const minQty = parseFloat(r.min_qty) || 0;
+      const maxQty = parseFloat(r.max_qty) || 0;
+      const dailyUsage = parseFloat(r.avg_daily_usage) || 0;
+      const daysRem = r.days_remaining !== null ? parseFloat(r.days_remaining) : (dailyUsage > 0 ? parseFloat((balance / dailyUsage).toFixed(1)) : 0);
+
+      let statusStr = String(r.status || 'Normal');
+      let statusTh = 'ปกติ';
+
+      if (minQty === 0 && maxQty === 0) {
+        statusStr = 'Unspecified';
+        statusTh = 'ไม่ได้ระบุ';
+      } else if (balance === 0) {
+        statusStr = 'Out of Stock';
+        statusTh = 'สินค้าหมดคลัง';
+      } else if (minQty > 0 && balance < minQty) {
+        statusStr = 'Below Min';
+        statusTh = 'ต่ำกว่าเกณฑ์';
+      } else if (maxQty > 0 && balance > maxQty) {
+        statusStr = 'Over Max';
+        statusTh = 'เกินเกณฑ์สูงสุด';
+      } else {
+        statusStr = 'Normal';
+        statusTh = 'ปริมาณปกติ';
+      }
+
+      return {
+        warehouse_id: String(r.stock_id || '').trim(),
+        warehouse: String(r.warehouse || '').trim(),
+        item_id: String(r.item_id || '').trim(),
+        name: String(r.name || '').trim(),
+        stock: balance,
+        balance: balance,
+        daily_usage: dailyUsage,
+        avg_daily_usage: dailyUsage,
+        min_threshold: minQty,
+        max_threshold: maxQty,
+        min_qty: minQty,
+        max_qty: maxQty,
+        status_th: statusTh,
+        status: statusStr,
+        date: String(r.last_update || '').trim(),
+        active_status: 1,
+        remaining_days: daysRem,
+        days_remaining: daysRem
+      };
+    });
+
+    res.json(mapped);
+  } catch (err) {
+    console.error('Error fetching inventory data:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Outbound Dispatch (ประวัติการจ่ายสินค้า)
+app.get('/api/dispatch', (req, res) => {
+  try {
+    const result = getLocalDispatchData();
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching dispatch data:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. Turnover & Movements (อัตราหมุนเวียนเวชภัณฑ์)
+app.get('/api/turnover', (req, res) => {
+  try {
+    const data = getLocalTurnoverData();
+    res.json(data);
+  } catch (err) {
+    console.error('Error fetching turnover data:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ================= DAILY AUTO-SYNC SCHEDULER ================= //
+
+let nextScheduledSyncTime = null;
+let isScheduledSyncRunning = false;
+
+// Configurable Daily Auto-Sync (Default from .env or 08:00 AM)
+const SYNC_TARGET_HOUR = parseInt(process.env.SYNC_HOUR || '8', 10);
+const SYNC_TARGET_MINUTE = parseInt(process.env.SYNC_MINUTE || '0', 10);
+
+function scheduleDailyAutoSync(hour = SYNC_TARGET_HOUR, minute = SYNC_TARGET_MINUTE) {
+  function getMsUntilTargetTime() {
+    const now = new Date();
+    const nextTarget = new Date(now);
+    nextTarget.setHours(hour, minute, 0, 0);
+    if (now.getTime() >= nextTarget.getTime()) {
+      nextTarget.setDate(nextTarget.getDate() + 1);
+    }
+    nextScheduledSyncTime = nextTarget.toISOString();
+    return nextTarget.getTime() - now.getTime();
+  }
+
+  function scheduleNext() {
+    const ms = getMsUntilTargetTime();
+    const hours = (ms / (1000 * 60 * 60)).toFixed(2);
+    const timeDisplay = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} น.`;
+    console.log(`⏰ [Auto-Sync Scheduler]: กำหนดเวลาซิงค์อัตโนมัติรอบถัดไปเวลา ${timeDisplay} (อีกประมาณ ${hours} ชั่วโมง)`);
+
+    setTimeout(async () => {
+      if (isScheduledSyncRunning) return;
+      isScheduledSyncRunning = true;
+      console.log(`\n======================================================`);
+      console.log(`⚡ [Auto-Sync]: ⏰ เริ่มต้น Auto-Sync ข้อมูลประจำวันเวลา ${timeDisplay}...`);
+      console.log(`======================================================\n`);
+      try {
+        if (dbPool) {
+          const result = await syncSnapshotFromPostgres(runReadOnlyQuery);
+          console.log(`✅ [Auto-Sync]: ซิงค์ข้อมูลประจำวันสำเร็จเรียบร้อย (${result.lastSyncedAt})\n`);
+        } else {
+          console.warn(`⚠️ [Auto-Sync]: ยังไม่ได้เชื่อมต่อ PostgreSQL ข้ามรอบนี้`);
+        }
+      } catch (err) {
+        console.error(`❌ [Auto-Sync Error]:`, err.message);
+      } finally {
+        isScheduledSyncRunning = false;
+      }
+      scheduleNext();
+    }, ms);
+  }
+
+  scheduleNext();
+}
+
+// ================= BOOTSTRAP ================= //
+
+async function startServer() {
+  console.clear();
+  console.log('\n======================================================');
+  console.log('   🚀 EXECUTIVE DASHBOARD - LOCAL SNAPSHOT ENGINE     ');
+  console.log('      ===========================================\n');      
+  console.log('======================================================\n');
+
+  const host = process.env.DB_HOST;
+  const port = process.env.DB_PORT;
+  const user = process.env.DB_USER;
+  const database = process.env.DB_NAME;
+  const password = process.env.DB_PASSWORD;
+
+  if (!host || !port || !user || !database || !password) {
+    console.error(' ไม่พบการตั้งค่าฐานข้อมูลในไฟล์ .env');
+    console.error(' กรุณากรอก DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_PASSWORD ในไฟล์ .env ให้ครบถ้วน\n');
+    process.exit(1);
+  }
+
+  console.log(' กำลังเชื่อมต่อฐานข้อมูล...');
+
+  try {
+    dbPool = new Pool({
+      host,
+      port: parseInt(port, 10),
+      user,
+      database,
+      password,
+      options: '-c default_transaction_read_only=on',
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 8000
+    });
+
+    const testClient = await dbPool.connect();
+    const testResult = await testClient.query("SELECT current_database() as db, current_user as usr, current_setting('default_transaction_read_only') as read_only;");
+    testClient.release();
+
+    console.log('\n✅ เชื่อมต่อสำเร็จ!');
+
+    const syncMeta = getSyncMetadata();
+    if (syncMeta.hasData) {
+      console.log(`\nอัปเดตข้อมูลล่าสุด: ${syncMeta.lastSyncedAt}`);
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+      scheduleDailyAutoSync();
+    });
+
+  } catch (err) {
+    console.error('\n การเชื่อมต่อล้มเหลว');
+    console.log('\n ตรวจสอบไฟล์ .env และลองใหม่อีกครั้ง');
+    process.exit(1);
+  }
+}
+
+startServer();
+
