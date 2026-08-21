@@ -35,7 +35,7 @@ export default function Sidebar({
   const isExcelActive = dataSourceMode === 'excel';
 
   const formatSyncTime = (timestamp) => {
-    if (!timestamp) return '19 ส.ค. 2569 08:00 น.';
+    if (!timestamp) return 'กำลังเชื่อมต่อข้อมูล...';
     let str = String(timestamp).trim();
     // Replace HH:mm:ss with HH:mm น.
     str = str.replace(/:(\d{2}):\d{2}/, ':$1 น.');

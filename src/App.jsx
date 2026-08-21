@@ -132,18 +132,31 @@ export default function App() {
   const [isFileImporting, setIsFileImporting] = useState(false);
   const isCurrentTabLoading = tabLoading[activeTab] || isFileImporting;
 
-  // Fetch initial snapshot metadata
+  // Fetch snapshot metadata and auto-sync state
+  const lastSyncedRef = useRef(null);
+
   const refreshSnapshotStatus = async () => {
     const meta = await getSnapshotStatus();
-    if (meta) {
+    if (meta && meta.lastSyncedAt) {
       setSnapshotMeta(meta);
       if (meta.hasData) setIsLiveDb(true);
+
+      // If timestamp updated in background, auto-reload active tab
+      if (lastSyncedRef.current && lastSyncedRef.current !== meta.lastSyncedAt) {
+        if (dataSourceMode === 'database') {
+          loadTabData(activeTab);
+        }
+      }
+      lastSyncedRef.current = meta.lastSyncedAt;
     }
   };
 
   useEffect(() => {
     refreshSnapshotStatus();
-  }, []);
+    // Check for new sync data every 10 seconds automatically
+    const interval = setInterval(refreshSnapshotStatus, 10000);
+    return () => clearInterval(interval);
+  }, [activeTab, dataSourceMode]);
 
   // Load a specific tab on demand (fast, non-blocking)
   const loadTabData = async (tabName) => {
