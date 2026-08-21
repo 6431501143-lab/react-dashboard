@@ -84,9 +84,24 @@ export function cleanProductCode(code) {
   return str;
 }
 
+function validateAndFormatISODate(year, month, day) {
+  let y = parseInt(year, 10);
+  const m = parseInt(month, 10);
+  const d = parseInt(day, 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+  if (y > 2400) y -= 543; // Thai Buddhist Era to CE
+  if (y < 1900 || y > 2200 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) {
+    return null;
+  }
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
 /**
  * Normalize any Date object, numeric Excel serial date, or Thai/Western date string
  * to standard ISO YYYY-MM-DD. Returns null if invalid.
+ * GUARANTEED CONTRACT: Returns string in format 'YYYY-MM-DD' or null.
  */
 export function normalizeToISODate(val) {
   if (val === null || val === undefined || val === '' || val === '-' || val === 'Unknown') {
@@ -95,11 +110,7 @@ export function normalizeToISODate(val) {
 
   // 1. JS Date instance
   if (val instanceof Date && !isNaN(val.getTime())) {
-    let y = val.getFullYear();
-    if (y > 2400) y -= 543; // Thai Buddhist Era to CE
-    const m = String(val.getMonth() + 1).padStart(2, '0');
-    const d = String(val.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return validateAndFormatISODate(val.getFullYear(), val.getMonth() + 1, val.getDate());
   }
 
   // 2. Numeric Excel serial number (with UTC Math & 1900 Leap Year Bug handling)
@@ -110,11 +121,7 @@ export function normalizeToISODate(val) {
     const millis = Math.round(days * 86400000);
     const excelDate = new Date(millis);
     if (!isNaN(excelDate.getTime())) {
-      let y = excelDate.getUTCFullYear();
-      if (y > 2400) y -= 543;
-      const m = String(excelDate.getUTCMonth() + 1).padStart(2, '0');
-      const d = String(excelDate.getUTCDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+      return validateAndFormatISODate(excelDate.getUTCFullYear(), excelDate.getUTCMonth() + 1, excelDate.getUTCDate());
     }
   }
 
@@ -127,43 +134,27 @@ export function normalizeToISODate(val) {
   // 3. Match YYYY-MM-DD or YYYY/MM/DD
   if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str)) {
     const parts = str.split(/[-/]/);
-    let y = parseInt(parts[0], 10);
-    if (y > 2400) y -= 543;
-    const m = parts[1].padStart(2, '0');
-    const d = parts[2].padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return validateAndFormatISODate(parts[0], parts[1], parts[2]);
   }
 
   // 4. Match YY-MM-DD (e.g. 26-08-20 -> 2026-08-20)
   if (/^\d{2}[-/]\d{1,2}[-/]\d{1,2}$/.test(str)) {
     const parts = str.split(/[-/]/);
-    let y = 2000 + parseInt(parts[0], 10);
-    const m = parts[1].padStart(2, '0');
-    const d = parts[2].padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return validateAndFormatISODate(2000 + parseInt(parts[0], 10), parts[1], parts[2]);
   }
 
   // 5. Match DD/MM/YYYY or DD-MM-YYYY or DD/MM/YY
   if (/^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}$/.test(str)) {
     const parts = str.split(/[-/]/);
-    let d = parts[0].padStart(2, '0');
-    let m = parts[1].padStart(2, '0');
     let y = parseInt(parts[2], 10);
-    if (y < 100) {
-      y = 2000 + y;
-    }
-    if (y > 2400) y -= 543;
-    return `${y}-${m}-${d}`;
+    if (y < 100) y = 2000 + y;
+    return validateAndFormatISODate(y, parts[1], parts[0]);
   }
 
   // 6. Native Date parse fallback
   const parsed = new Date(str);
   if (!isNaN(parsed.getTime())) {
-    let y = parsed.getFullYear();
-    if (y > 2400) y -= 543;
-    const m = String(parsed.getMonth() + 1).padStart(2, '0');
-    const d = String(parsed.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return validateAndFormatISODate(parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate());
   }
 
   return null;
