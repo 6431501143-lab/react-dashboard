@@ -1593,7 +1593,6 @@ export default function TurnoverTab({
     setModalNetTab('All');
     setModalYearlyDay('All');
     setModalYearlyMonth('All');
-    setModalYearlySort('date_asc');
     setModalYearFilter('All');
     setIsModalOpen(true);
   };
@@ -1788,6 +1787,13 @@ export default function TurnoverTab({
                     },
                     events: {
                       markerClick: (e, chartCtx, config) => {
+                        const mIdx = config.dataPointIndex;
+                        const month = monthlyChartData.months[mIdx];
+                        if (month) {
+                          handleOpenDrilldown('turnover_monthly', { month, direction: 'สุทธิ' }, `ความเคลื่อนไหวเดือน ${formatMonthYearThaiLong(month)} - Turnover Details`);
+                        }
+                      },
+                      dataPointSelection: (e, chartCtx, config) => {
                         const mIdx = config.dataPointIndex;
                         const month = monthlyChartData.months[mIdx];
                         if (month) {
