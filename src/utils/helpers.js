@@ -22,6 +22,17 @@ export function getBangkokDateString(date = new Date()) {
 }
 
 /**
+ * Validate whether a string is a strictly valid ISO calendar date (YYYY-MM-DD)
+ */
+export function isValidISODate(str) {
+  if (typeof str !== 'string' || str.length !== 10) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
+  const [y, m, d] = str.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+/**
  * Format Date to DD/MM/YY
  */
 export function formatDateToDDMMYY(dateStr) {

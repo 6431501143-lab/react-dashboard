@@ -5,7 +5,7 @@ import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { Package, Hash, DollarSign, AlertCircle, Clock, Search, Layers } from 'lucide-react';
-import { formatDateToDDMMYY, getBangkokDateString, formatBahtCurrency } from '../utils/helpers';
+import { formatDateToDDMMYY, getBangkokDateString, formatBahtCurrency, isValidISODate } from '../utils/helpers';
 
 export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = [], selectedProducts = [], startDate, endDate }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,7 +55,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
   // Helper: คำนวณและแสดงระยะเวลาหมดอายุภาษาไทยแม่นยำ (เช่น "13 วัน", "2 เดือน 5 วัน", "1 ปี 2 เดือน")
   const formatExpiredDurationLabel = (val, row) => {
     const dateStr = row?.วันหมดอายุ;
-    if (dateStr && dateStr.includes('-')) {
+    if (isValidISODate(dateStr)) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const targetDate = new Date(dateStr);
@@ -114,7 +114,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
   const expiredDatasetOnly = useMemo(() => {
     return filteredExpiryDataset.filter(row => {
       const dateStr = row.วันหมดอายุ;
-      return dateStr && dateStr.includes('-') && dateStr <= todayStr;
+      return isValidISODate(dateStr) && dateStr <= todayStr;
     });
   }, [filteredExpiryDataset, todayStr]);
 
@@ -122,11 +122,11 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
   const upcomingDatasetOnly = useMemo(() => {
     const sixMonthsLater = new Date();
     sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
-    const sixMonthsLaterStr = sixMonthsLater.toISOString().split('T')[0];
+    const sixMonthsLaterStr = getBangkokDateString(sixMonthsLater);
 
     return filteredExpiryDataset.filter(row => {
       const dateStr = row.วันหมดอายุ;
-      return dateStr && dateStr.includes('-') && dateStr > todayStr && dateStr <= sixMonthsLaterStr;
+      return isValidISODate(dateStr) && dateStr > todayStr && dateStr <= sixMonthsLaterStr;
     }).sort((a, b) => {
       const dateA = a.day_expiry || a.วันหมดอายุ || '';
       const dateB = b.day_expiry || b.วันหมดอายุ || '';
@@ -227,7 +227,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
 
     targetRows.forEach(row => {
       const dateStr = row.วันหมดอายุ;
-      if (!dateStr || !dateStr.includes('-')) return;
+      if (!isValidISODate(dateStr)) return;
 
       const m = dateStr.substring(0, 7);
       monthsWithData.push(m);
@@ -390,7 +390,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
   const upcomingExpiryChartData = useMemo(() => {
     const futureRows = filteredExpiryDataset.filter(row => {
       const dateStr = row.วันหมดอายุ;
-      return dateStr && dateStr.includes('-') && dateStr > todayStr;
+      return isValidISODate(dateStr) && dateStr > todayStr;
     });
 
     if (futureRows.length === 0) {

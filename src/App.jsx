@@ -30,6 +30,7 @@ import {
   Database
 } from 'lucide-react';
 import { parseUploadedFile } from './utils/fileImporter';
+import { isValidISODate } from './utils/helpers';
 
 const VALID_TABS = ['stagnant', 'expiry', 'inventory', 'dispatch', 'turnover'];
 
@@ -380,8 +381,8 @@ export default function App() {
   const availableYears = useMemo(() => {
     const years = new Set();
     currentStagnantData.forEach(row => {
-      const dateStr = row.วันโอน || row.วันที่เคลื่อนไหวล่าสุ;
-      if (dateStr && dateStr.includes('-')) {
+      const dateStr = row.วันโอน || row.วันที่เคลื่อนไหวล่าสุด || row.วันที่เคลื่อนไหวล่าสุ;
+      if (isValidISODate(dateStr)) {
         years.add(dateStr.split('-')[0]);
       }
     });

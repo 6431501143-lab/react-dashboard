@@ -5,7 +5,7 @@ import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { Package, List, DollarSign, Home, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatDateToDDMMYY, formatBahtCurrency } from '../utils/helpers';
+import { formatDateToDDMMYY, formatBahtCurrency, isValidISODate } from '../utils/helpers';
 
 export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], selectedProducts = [], selectedYear = 'All' }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,7 +55,7 @@ export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], 
       // Year Filter (based on Transfer Date)
       if (selectedYear !== 'All') {
         const dateStr = row.วันโอน || row.วันที่เคลื่อนไหวล่าสุด || row.วันที่เคลื่อนไหวล่าสุ;
-        if (!dateStr || !dateStr.includes('-')) return false;
+        if (!isValidISODate(dateStr)) return false;
         const year = dateStr.split('-')[0];
         if (year !== selectedYear) return false;
       }
