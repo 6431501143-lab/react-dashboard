@@ -219,11 +219,11 @@ export function cleanExcelRows(rows) {
     const finalUnitPrice = rawPrice > 0 ? rawPrice : (rawQty > 0 && finalTotalValue > 0 ? parseFloat((finalTotalValue / rawQty).toFixed(2)) : 0.0);
 
     const rawDate = getVal('วันที่นำเข้าคลัง', 'วันนำเข้า', 'วันที่รับเข้า', 'วันที่เคลื่อนไหวล่าสุด', 'วันที่เคลื่อนไหวล่าสุ', 'วันเคลื่อนไหวล่าสุด', 'วันโอน', 'วันที่', 'date', 'Date', 'last_movement', 'tx_date');
-    const normalizedDate = normalizeToISODate(rawDate) || 'Unknown';
+    const normalizedDate = normalizeToISODate(rawDate);
 
     // Calculate duration string
     let durationStr = getVal('ระยะเวลารวม', 'ระยะเวลาเฉลี่ย', 'ระยะเวลา', 'duration', 'stagnant_period');
-    if (!durationStr && normalizedDate && normalizedDate !== 'Unknown' && normalizedDate.includes('-')) {
+    if (!durationStr && normalizedDate) {
       const target = new Date(normalizedDate);
       target.setHours(0, 0, 0, 0);
       const diffMs = today.getTime() - target.getTime();
@@ -237,7 +237,7 @@ export function cleanExcelRows(rows) {
         const mons = Math.floor(diffDays / 30.4375);
         durationStr = mons > 0 ? `${mons} mons` : `${diffDays} days`;
       } else {
-        durationStr = '0 days'; // Fixed: do not default to 1 year when not stagnant
+        durationStr = '0 days';
       }
     } else if (!durationStr) {
       durationStr = '1 year';
@@ -287,11 +287,11 @@ export function cleanExpiryRows(rows) {
     const rawTotal = Math.abs(parseFloat(String(getVal('มูลค่ารวม', 'มูลค่า', 'ราคารวม', 'ยอดเงิน', 'total_value', 'total_price', 'amount', 'sum_price')).replace(/,/g, '')));
     const parsedTotal = !isNaN(rawTotal) && rawTotal > 0 ? rawTotal : parseFloat((rawQty * rawPrice).toFixed(2));
 
-    const isoDate = normalizeToISODate(rawDate) || 'Unknown';
+    const isoDate = normalizeToISODate(rawDate);
 
     // Calculate duration string
     let durationStr = getVal('ระยะเวลาหมดอายุ', 'ระยะเวลา');
-    if (!durationStr && isoDate && isoDate !== 'Unknown' && isoDate.includes('-')) {
+    if (!durationStr && isoDate) {
       const target = new Date(isoDate);
       target.setHours(0, 0, 0, 0);
       const diffMs = today.getTime() - target.getTime();
@@ -312,7 +312,7 @@ export function cleanExpiryRows(rows) {
       }
     }
 
-    const isExpired = isoDate !== 'Unknown' && isoDate <= todayBkkStr;
+    const isExpired = isoDate && isoDate <= todayBkkStr;
 
     const finalItemId = String(rawItemId || '-').trim();
     const finalItemName = String(rawItemName || rawItemId || 'Unknown Item').trim();

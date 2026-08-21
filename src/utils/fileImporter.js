@@ -196,7 +196,7 @@ export async function parseUploadedFile(file, activeTab = 'stagnant') {
           rawJson.forEach(row => {
             const rawDate = extractRowField(row, ['วันที่', 'วันที่จ่าย', 'วันจ่าย', 'วันที่ส่งออก', 'วันที่เบิก', 'วันเบิก', 'วัน', 'date', 'Date', 'Transaction Date', 'tx_date', 'dispatch_date', 'issue_date', 'timestamp']);
             const dateStr = normalizeToISODate(rawDate);
-            if (!dateStr || dateStr === 'Unknown') return;
+            if (!dateStr) return;
 
             const itemId = extractRowField(row, ['item_id', 'item_code', 'code', 'product_id', 'product_code', 'รหัสสินค้า', 'รหัสยา', 'รหัสเวชภัณฑ์', 'รหัสรายการ', 'รหัส']);
             const itemName = extractRowField(row, ['สินค้า', 'ชื่อสินค้า', 'ชื่อยา', 'ชื่อเวชภัณฑ์', 'ชื่อสามัญ', 'ชื่อรายการ', 'รายการ', 'name', 'item_name', 'product_name', 'description'], itemId || 'ไม่ระบุชื่อสินค้า');
@@ -302,7 +302,7 @@ export async function parseUploadedFile(file, activeTab = 'stagnant') {
           rawJson.forEach(row => {
             const rawDate = extractRowField(row, ['วันที่', 'date', 'Date', 'วันโอน', 'วันที่เคลื่อนไหวล่าสุด', 'วันที่ทำรายการ', 'timestamp']);
             const dateStr = normalizeToISODate(rawDate);
-            if (!dateStr || dateStr === 'Unknown') return;
+            if (!dateStr) return;
 
             const itemId = extractRowField(row, ['item_id', 'item_code', 'code', 'product_id', 'รหัสสินค้า', 'รหัสยา', 'รหัสเวชภัณฑ์', 'รหัสรายการ', 'รหัส']);
             const itemName = extractRowField(row, ['สินค้า', 'ชื่อสินค้า', 'ชื่อยา', 'ชื่อเวชภัณฑ์', 'ชื่อสามัญ', 'ชื่อรายการ', 'รายการ', 'name', 'item_name', 'product_name', 'description'], itemId || 'Unknown');
