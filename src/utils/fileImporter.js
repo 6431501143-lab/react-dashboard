@@ -88,11 +88,11 @@ function extractRowField(row, aliases, fallback = '') {
   // 2. Normalized key match (lowercase, no spaces/underscores)
   const normalizedKeys = Object.keys(row).map(k => ({
     orig: k,
-    norm: k.toLowerCase().replace(/[\s_\-\.\(\)\[\]"]/g, '')
+    norm: k.toLowerCase().replace(/[\s_\-.()[\]"]/g, '')
   }));
 
   for (const alias of aliases) {
-    const normAlias = alias.toLowerCase().replace(/[\s_\-\.\(\)\[\]"]/g, '');
+    const normAlias = alias.toLowerCase().replace(/[\s_\-.()[\]"]/g, '');
     const found = normalizedKeys.find(k => k.norm === normAlias);
     if (found && row[found.orig] !== undefined && row[found.orig] !== null && String(row[found.orig]).trim() !== '') {
       return String(row[found.orig]).trim();
@@ -101,7 +101,7 @@ function extractRowField(row, aliases, fallback = '') {
 
   // 3. Substring key match
   for (const alias of aliases) {
-    const normAlias = alias.toLowerCase().replace(/[\s_\-\.\(\)\[\]"]/g, '');
+    const normAlias = alias.toLowerCase().replace(/[\s_\-.()[\]"]/g, '');
     if (normAlias.length < 2) continue;
     const found = normalizedKeys.find(k => k.norm.includes(normAlias) || normAlias.includes(k.norm));
     if (found && row[found.orig] !== undefined && row[found.orig] !== null && String(row[found.orig]).trim() !== '') {

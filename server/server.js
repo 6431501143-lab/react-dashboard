@@ -4,7 +4,6 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { QUERIES } from './queries.js';
 import { initLocalDb, getSyncMetadata } from './local_db.js';
 import { 
   syncSnapshotFromPostgres, 

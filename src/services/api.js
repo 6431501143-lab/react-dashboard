@@ -2,8 +2,6 @@
 // API CLIENT - POSTGRESQL LIVE & CLEAN ARCHITECTURE
 // =========================================================================
 
-const CLOUDFLARE_TUNNEL_URL = 'https://layers-supplied-then-transportation.trycloudflare.com/api';
-
 function isLocalOrPrivateNetwork() {
   if (typeof window === 'undefined') return false;
   const host = window.location.hostname;
@@ -19,9 +17,7 @@ function isLocalOrPrivateNetwork() {
 }
 
 const API_BASE_URL = typeof window !== 'undefined'
-  ? (isLocalOrPrivateNetwork()
-      ? `http://${window.location.hostname}:5000/api`
-      : (import.meta.env.VITE_API_URL || CLOUDFLARE_TUNNEL_URL))
+  ? (import.meta.env.VITE_API_URL || (isLocalOrPrivateNetwork() ? `http://${window.location.hostname}:5000/api` : `http://localhost:5000/api`))
   : 'http://localhost:5000/api';
 
 // Check Server Connection Health

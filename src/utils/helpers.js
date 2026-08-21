@@ -181,7 +181,7 @@ function createRowKeyLookup(row) {
   for (const [k, v] of Object.entries(row)) {
     if (v !== undefined && v !== null && v !== '') {
       const cleanK = String(k).trim();
-      const normK = cleanK.toLowerCase().replace(/[\s_\-\.\(\)\[\]"']/g, '');
+      const normK = cleanK.toLowerCase().replace(/[\s_\-.()[\]"']/g, '');
       map.set(cleanK, v);
       if (!map.has(normK)) map.set(normK, v);
     }
@@ -190,7 +190,7 @@ function createRowKeyLookup(row) {
   return (...keys) => {
     for (const key of keys) {
       if (map.has(key)) return map.get(key);
-      const normKey = String(key).toLowerCase().replace(/[\s_\-\.\(\)\[\]"']/g, '');
+      const normKey = String(key).toLowerCase().replace(/[\s_\-.()[\]"']/g, '');
       if (map.has(normKey)) return map.get(normKey);
     }
     return '';

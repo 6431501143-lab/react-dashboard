@@ -5,9 +5,8 @@ import {
   RefreshCw, 
   Database, 
   Truck, 
-  ChevronLeft,
-  Package,
-  UploadCloud,
+  ChevronLeft, 
+  Package, 
   FileSpreadsheet
 } from 'lucide-react';
 
@@ -15,12 +14,12 @@ export default function Sidebar({
   activeTab, 
   onChangeTab, 
   isCollapsed, 
-  setIsCollapsed,
-  isLiveDb,
+  setIsCollapsed, 
+  isLiveDb, 
   dataSourceMode, // 'database' | 'excel'
-  onSelectDatabaseMode,
-  onSelectExcelMode,
-  isLoading,
+  onSelectDatabaseMode, 
+  onSelectExcelMode, 
+  _isLoading, 
   lastSyncedAt
 }) {
   const menuItems = [

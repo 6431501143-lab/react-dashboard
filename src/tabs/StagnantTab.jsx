@@ -5,7 +5,7 @@ import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { Package, List, DollarSign, Home, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatDateToDDMMYY, formatBahtCurrency, isValidISODate } from '../utils/helpers';
+import { formatDateToDDMMYY, isValidISODate } from '../utils/helpers';
 
 export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], selectedProducts = [], selectedYear = 'All' }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -506,7 +506,7 @@ export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], 
                     legend: { show: false },
                     grid: { borderColor: 'var(--border)', strokeDashArray: 4, padding: { right: 65, left: 10 } },
                     tooltip: {
-                      custom: function({series, seriesIndex, dataPointIndex, w}) {
+                      custom: function({_series, _seriesIndex, dataPointIndex, _w}) {
                         const prod = top10ChartData.fullList[dataPointIndex];
                         if (!prod) return '';
                         return `
@@ -646,7 +646,7 @@ export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], 
                     legend: { show: false },
                     grid: { borderColor: 'var(--border)', strokeDashArray: 4, padding: { right: 65, left: 10 } },
                     tooltip: {
-                      custom: function({series, seriesIndex, dataPointIndex, w}) {
+                      custom: function({_series, _seriesIndex, dataPointIndex, w}) {
                         const whName = warehouseChartData.fullCategories ? warehouseChartData.fullCategories[dataPointIndex] : w.config.xaxis.categories[dataPointIndex];
                         if (!whName) return '';
                         const whItems = filteredDataset.filter(r => r.คลัง === whName);

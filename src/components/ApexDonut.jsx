@@ -23,10 +23,59 @@ export default function ApexDonut({
   const totalValueFormatterRef = useRef(totalValueFormatter);
   totalValueFormatterRef.current = totalValueFormatter;
 
+  const lastTriggerTimeRef = useRef(0);
+
+  const triggerSelection = (idx) => {
+    if (idx === undefined || idx === null || idx === -1 || isNaN(idx)) return;
+    const now = Date.now();
+    if (now - lastTriggerTimeRef.current < 150) return; // prevent duplicate rapid triggers
+    lastTriggerTimeRef.current = now;
+    if (onPointSelectedRef.current) {
+      onPointSelectedRef.current(idx);
+    }
+  };
+
   const seriesKey = JSON.stringify(series);
   const labelsKey = JSON.stringify(labels);
   const colorsKey = JSON.stringify(colors);
   const legendOptionsKey = JSON.stringify(legendOptions);
+
+  // DOM-level click delegation for maximum reliability across browsers and touch devices
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    const handleDomClick = (e) => {
+      // 1. Check if clicked a donut slice path
+      const slice = e.target.closest('path.apexcharts-pie-area, path[j], path[data\\:realIndex]');
+      if (slice) {
+        let j = slice.getAttribute('j') ?? slice.getAttribute('data:realIndex');
+        if (j !== null && j !== undefined) {
+          const idx = parseInt(j, 10);
+          if (!isNaN(idx) && idx >= 0) {
+            triggerSelection(idx);
+            return;
+          }
+        }
+      }
+
+      // 2. Check if clicked a legend item
+      const legend = e.target.closest('.apexcharts-legend-series');
+      if (legend) {
+        const rel = legend.getAttribute('rel');
+        if (rel) {
+          const idx = parseInt(rel, 10) - 1;
+          if (!isNaN(idx) && idx >= 0) {
+            triggerSelection(idx);
+            return;
+          }
+        }
+      }
+    };
+
+    container.addEventListener('click', handleDomClick, true);
+    return () => container.removeEventListener('click', handleDomClick, true);
+  }, []);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -35,7 +84,9 @@ export default function ApexDonut({
     if (chartInstanceRef.current) {
       try {
         chartInstanceRef.current.destroy();
-      } catch (e) {}
+      } catch {
+        // ignore
+      }
       chartInstanceRef.current = null;
     }
 
@@ -56,18 +107,14 @@ export default function ApexDonut({
           }
         },
         events: {
-          dataPointSelection: (event, chartContext, config) => {
+          dataPointSelection: (_event, _chartContext, config) => {
             const idx = (config && config.dataPointIndex !== undefined && config.dataPointIndex !== -1)
               ? config.dataPointIndex 
               : (config && config.seriesIndex !== undefined ? config.seriesIndex : -1);
-            if (onPointSelectedRef.current && idx !== undefined && idx !== null && idx !== -1) {
-              onPointSelectedRef.current(idx);
-            }
+            triggerSelection(idx);
           },
-          legendClick: (chartContext, seriesIndex, config) => {
-            if (onPointSelectedRef.current && seriesIndex !== undefined && seriesIndex !== null && seriesIndex !== -1) {
-              onPointSelectedRef.current(seriesIndex);
-            }
+          legendClick: (_chartContext, seriesIndex, _config) => {
+            triggerSelection(seriesIndex);
           }
         }
       },
@@ -179,11 +226,13 @@ export default function ApexDonut({
       if (chartInstanceRef.current) {
         try {
           chartInstanceRef.current.destroy();
-        } catch (e) {}
+        } catch {
+          // ignore
+        }
         chartInstanceRef.current = null;
       }
     };
-  }, [seriesKey, labelsKey, colorsKey, size, totalLabel, showLegend, height, legendFontSize, legendOptionsKey]);
+  }, [series, labels, colors, legendOptions, seriesKey, labelsKey, colorsKey, size, totalLabel, showLegend, height, legendFontSize, legendOptionsKey]);
 
   return (
     <div 

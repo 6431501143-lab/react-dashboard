@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import DateSlicer from './components/DateSlicer';
 import MultiselectDropdown from './components/MultiselectDropdown';
@@ -25,9 +25,7 @@ import {
   RotateCcw, 
   AlertCircle, 
   UploadCloud,
-  Loader2,
-  Activity,
-  Database
+  Activity
 } from 'lucide-react';
 import { parseUploadedFile } from './utils/fileImporter';
 import { isValidISODate } from './utils/helpers';
@@ -49,7 +47,6 @@ export default function App() {
   });
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Remember data source mode across refreshes: 'database' | 'excel'
   const [dataSourceMode, setDataSourceMode] = useState(() => {
@@ -133,36 +130,8 @@ export default function App() {
   const [isFileImporting, setIsFileImporting] = useState(false);
   const isCurrentTabLoading = tabLoading[activeTab] || isFileImporting;
 
-  // Fetch snapshot metadata and auto-sync state
-  const lastSyncedRef = useRef(null);
-
-  const refreshSnapshotStatus = async () => {
-    const meta = await getSnapshotStatus();
-    if (meta && meta.lastSyncedAt) {
-      setSnapshotMeta(meta);
-      if (meta.hasData) setIsLiveDb(true);
-
-      // If timestamp updated in background, auto-reload active tab
-      if (lastSyncedRef.current && lastSyncedRef.current !== meta.lastSyncedAt) {
-        if (dataSourceMode === 'database') {
-          loadTabData(activeTab);
-        }
-      }
-      lastSyncedRef.current = meta.lastSyncedAt;
-    }
-  };
-
-  useEffect(() => {
-    refreshSnapshotStatus();
-    // Check for new sync data every 10 seconds automatically
-    const interval = setInterval(refreshSnapshotStatus, 10000);
-    return () => clearInterval(interval);
-  }, [activeTab, dataSourceMode]);
-
   // Load a specific tab on demand (fast, non-blocking)
-  const loadTabData = async (tabName) => {
-    if (tabLoading[tabName]) return;
-
+  const loadTabData = useCallback(async (tabName) => {
     setTabLoading(prev => ({ ...prev, [tabName]: true }));
 
     try {
@@ -191,9 +160,34 @@ export default function App() {
       console.error(`Error fetching ${tabName}:`, err);
     } finally {
       setTabLoading(prev => ({ ...prev, [tabName]: false }));
-      refreshSnapshotStatus();
     }
-  };
+  }, []);
+
+  // Fetch snapshot metadata and auto-sync state
+  const lastSyncedRef = useRef(null);
+
+  const refreshSnapshotStatus = useCallback(async () => {
+    const meta = await getSnapshotStatus();
+    if (meta && meta.lastSyncedAt) {
+      setSnapshotMeta(meta);
+      if (meta.hasData) setIsLiveDb(true);
+
+      // If timestamp updated in background, auto-reload active tab
+      if (lastSyncedRef.current && lastSyncedRef.current !== meta.lastSyncedAt) {
+        if (dataSourceMode === 'database') {
+          loadTabData(activeTab);
+        }
+      }
+      lastSyncedRef.current = meta.lastSyncedAt;
+    }
+  }, [activeTab, dataSourceMode, loadTabData]);
+
+  useEffect(() => {
+    refreshSnapshotStatus();
+    // Check for new sync data every 10 seconds automatically
+    const interval = setInterval(refreshSnapshotStatus, 10000);
+    return () => clearInterval(interval);
+  }, [refreshSnapshotStatus]);
 
   // Trigger manual snapshot sync from PostgreSQL to SQLite
   const handleSyncSnapshot = async () => {
@@ -219,7 +213,7 @@ export default function App() {
     if (dataSourceMode === 'database') {
       loadTabData(activeTab);
     }
-  }, [activeTab, dataSourceMode]);
+  }, [activeTab, dataSourceMode, loadTabData]);
 
   const handleSelectDatabaseMode = () => {
     setDataSourceMode('database');
@@ -432,7 +426,7 @@ export default function App() {
     const titles = {
       stagnant: 'วิเคราะห์ข้อมูลสินค้าไม่เคลื่อนไหวเกิน 1 ปี',
       expiry: 'วิเคราะห์ข้อมูลสินค้าหมดอายุและใกล้หมดอายุ',
-      turnover: 'วิเคราะห์อัตราการหมุนเวียของนเวชภัณฑ์',
+      turnover: 'วิเคราะห์อัตราการหมุนเวียนของเวชภัณฑ์',
       inventory: 'วิเคราะห์ข้อมูลระดับสินค้าคงคลังและสถานะสต็อก',
       dispatch: 'วิเคราะห์ข้อมูลรายการจ่ายสินค้าไปยังคลังย่อยหรือหน่วยงาน'
     };
@@ -467,7 +461,7 @@ export default function App() {
         dataSourceMode={dataSourceMode}
         onSelectDatabaseMode={handleSelectDatabaseMode}
         onSelectExcelMode={() => setDataSourceMode('excel')}
-        isLoading={isLoading}
+        isLoading={isCurrentTabLoading}
         lastSyncedAt={snapshotMeta?.lastSyncedAt}
       />
 
@@ -479,6 +473,33 @@ export default function App() {
             <h1 id="page-title">{getTabTitle()}</h1>
             <p id="page-subtitle">{getTabSubtitle()}</p>
           </div>
+
+          {dataSourceMode === 'database' && (
+            <button
+              type="button"
+              onClick={handleSyncSnapshot}
+              disabled={isSyncingSnapshot}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                border: '1px solid #10b981',
+                backgroundColor: isSyncingSnapshot ? 'rgba(16, 185, 129, 0.1)' : '#10b981',
+                color: isSyncingSnapshot ? '#10b981' : '#ffffff',
+                fontSize: '0.84rem',
+                fontWeight: 600,
+                cursor: isSyncingSnapshot ? 'not-allowed' : 'pointer',
+                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
+                transition: 'all 0.2s ease'
+              }}
+              title="ดึงข้อมูลสรุปล่าสุดจาก PostgreSQL โรงพยาบาลมาเก็บในเครื่องทันที"
+            >
+              <RefreshCw size={15} className={isSyncingSnapshot ? 'animate-spin' : ''} />
+              <span>{isSyncingSnapshot ? 'กำลังซิงค์ข้อมูล...' : 'ซิงค์ข้อมูลสด (Sync Now)'}</span>
+            </button>
+          )}
         </header>
 
         {/* Toast Notification */}

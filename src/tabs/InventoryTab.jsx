@@ -4,8 +4,7 @@ import KpiCard from '../components/KpiCard';
 import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
-import { Database, TrendingUp, AlertTriangle, CheckCircle, Search, HelpCircle } from 'lucide-react';
-import { formatDateToDDMMYY, formatBahtCurrency } from '../utils/helpers';
+import { TrendingUp, AlertTriangle, CheckCircle, Search, HelpCircle } from 'lucide-react';
 
 export default function InventoryTab({ 
   rawInventoryDataset = [], 

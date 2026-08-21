@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Chart from 'react-apexcharts';
 import KpiCard from '../components/KpiCard';
 import ResponsiveTable from '../components/ResponsiveTable';
@@ -95,7 +95,7 @@ export default function DispatchTab({
   const { products = [], destinations = [], departments = [], transactions = [] } = normalizedData;
 
   // Safe Lookups that prevent "Unknown" errors
-  const getProductInfo = (prodRef) => {
+  const getProductInfo = useCallback((prodRef) => {
     if (prodRef === undefined || prodRef === null) return { code: '-', name: 'ไม่ระบุ' };
     if (typeof prodRef === 'number') {
       const p = products[prodRef];
@@ -109,9 +109,9 @@ export default function DispatchTab({
       return { code: cleanProductCode(prodRef), name: prodRef };
     }
     return { code: '-', name: 'ไม่ระบุ' };
-  };
+  }, [products]);
 
-  const getDestinationName = (destRef) => {
+  const getDestinationName = useCallback((destRef) => {
     if (destRef === undefined || destRef === null) return 'ไม่ระบุคลัง';
     if (typeof destRef === 'number') return destinations[destRef] || 'ไม่ระบุคลัง';
     if (typeof destRef === 'string') {
@@ -120,9 +120,9 @@ export default function DispatchTab({
       return destRef;
     }
     return 'ไม่ระบุคลัง';
-  };
+  }, [destinations]);
 
-  const getDepartmentName = (deptRef) => {
+  const getDepartmentName = useCallback((deptRef) => {
     if (deptRef === undefined || deptRef === null) return 'ไม่ระบุแผนก';
     if (typeof deptRef === 'number') return departments[deptRef] || 'ไม่ระบุแผนก';
     if (typeof deptRef === 'string') {
@@ -131,7 +131,7 @@ export default function DispatchTab({
       return deptRef;
     }
     return 'ไม่ระบุแผนก';
-  };
+  }, [departments]);
 
   const startStr = useMemo(() => {
     if (!startDate) return '';
@@ -168,7 +168,7 @@ export default function DispatchTab({
 
       return true;
     });
-  }, [transactions, destinations, products, selectedWarehouses, selectedProducts, startStr, endStr]);
+  }, [transactions, getDestinationName, getProductInfo, selectedWarehouses, selectedProducts, startStr, endStr]);
 
   // Searched Table rows
   const searchedTableRows = useMemo(() => {
@@ -180,7 +180,7 @@ export default function DispatchTab({
       const dept = getDepartmentName(row[3]).toLowerCase();
       return prod.code.toLowerCase().includes(term) || prod.name.toLowerCase().includes(term) || dest.includes(term) || dept.includes(term);
     });
-  }, [filteredDataset, products, destinations, departments, searchTerm]);
+  }, [filteredDataset, getProductInfo, getDestinationName, getDepartmentName, searchTerm]);
 
   // 2. Compute KPIs
   const stats = useMemo(() => {
@@ -250,7 +250,7 @@ export default function DispatchTab({
       values: sorted.map(d => Math.round(d.qty)),
       fullList: sorted
     };
-  }, [filteredDataset, products]);
+  }, [filteredDataset, getProductInfo]);
 
   // Top 15 Destinations by quantity
   const topDestinationsChartData = useMemo(() => {
@@ -276,7 +276,7 @@ export default function DispatchTab({
       values: sorted.map(d => Math.round(d.qty)),
       fullList: sorted
     };
-  }, [filteredDataset, destinations]);
+  }, [filteredDataset, getDestinationName]);
 
   // Department Donut chart
   const departmentDonutData = useMemo(() => {
@@ -308,7 +308,7 @@ export default function DispatchTab({
       top10,
       othersQty
     };
-  }, [filteredDataset, departments]);
+  }, [filteredDataset, getDepartmentName]);
 
   // YoY Chart data (ทั้งแบบรายเดือน 12 เดือน และแบบเปรียบเทียบยอดรวมรายปี)
   const yoyChartData = useMemo(() => {
@@ -616,7 +616,7 @@ export default function DispatchTab({
     }
 
     return [];
-  }, [drilldownType, drilldownKey, filteredDataset, activeYoYYear, products, destinations, departments]);
+  }, [drilldownType, drilldownKey, filteredDataset, activeYoYYear, getProductInfo, getDestinationName, getDepartmentName]);
 
   const modalTitleComputed = useMemo(() => {
     if (drilldownType === 'dispatch_yoy') {
@@ -674,7 +674,7 @@ export default function DispatchTab({
       return [{ label: 'รายละเอียดฟิลเตอร์', value: `ปริมาณจ่ายสะสมรวม: ${stats.totalQty.toLocaleString()} ชิ้น (คลังสินค้าปลายทางรวม ${totalCount} แห่ง)`, color: 'var(--accent)' }];
     }
     return [];
-  }, [drilldownType, drilldownKey, modalRows, activeYoYYear, products, destinations, departments, stats.totalQty]);
+  }, [drilldownType, drilldownKey, modalRows, activeYoYYear, getProductInfo, getDestinationName, getDepartmentName, stats.totalQty]);
 
   // Trigger dynamic entrance animation for Monthly Line Chart
   useEffect(() => {
@@ -899,7 +899,7 @@ export default function DispatchTab({
                     },
                     grid: { borderColor: 'var(--border)', strokeDashArray: 4 },
                     tooltip: {
-                      custom: function({series, seriesIndex, dataPointIndex, w}) {
+                      custom: function({series, seriesIndex, dataPointIndex, _w}) {
                         const monthKey = monthlyChartData.months[dataPointIndex];
                         const val = series[seriesIndex][dataPointIndex];
                         const count = monthlyChartData.fullMap[monthKey]?.count || 0;
@@ -1011,7 +1011,7 @@ export default function DispatchTab({
                     legend: { show: false },
                     grid: { borderColor: 'var(--border)', strokeDashArray: 4, padding: { right: 65 } },
                     tooltip: {
-                      custom: function({series, seriesIndex, dataPointIndex, w}) {
+                      custom: function({_series, _seriesIndex, dataPointIndex, _w}) {
                         const item = topProductsChartData.fullList[dataPointIndex];
                         if (!item) return '';
                         const prod = getProductInfo(item.idx);
@@ -1120,7 +1120,7 @@ export default function DispatchTab({
                     legend: { show: false },
                     grid: { borderColor: 'var(--border)', strokeDashArray: 4, padding: { right: 65 } },
                     tooltip: {
-                      custom: function({series, seriesIndex, dataPointIndex, w}) {
+                      custom: function({_series, _seriesIndex, dataPointIndex, _w}) {
                         const item = topDestinationsChartData.fullList[dataPointIndex];
                         if (!item) return '';
                         const destName = getDestinationName(item.idx);
@@ -1272,7 +1272,7 @@ export default function DispatchTab({
                     },
                     grid: { borderColor: 'var(--border)', strokeDashArray: 4, padding: { top: 25 } },
                     tooltip: {
-                      custom: function({series, seriesIndex, dataPointIndex, w}) {
+                      custom: function({_series, _seriesIndex, dataPointIndex, _w}) {
                         const yr = yoyChartData.yearsList[dataPointIndex];
                         const val = yoyChartData.annualValues[dataPointIndex] || 0;
                         const growth = yoyChartData.annualGrowth[dataPointIndex];

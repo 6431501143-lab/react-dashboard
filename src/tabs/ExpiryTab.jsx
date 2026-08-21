@@ -5,7 +5,7 @@ import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { Package, Hash, DollarSign, AlertCircle, Clock, Search, Layers } from 'lucide-react';
-import { formatDateToDDMMYY, getBangkokDateString, formatBahtCurrency, isValidISODate } from '../utils/helpers';
+import { formatDateToDDMMYY, getBangkokDateString, isValidISODate } from '../utils/helpers';
 
 export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = [], selectedProducts = [], startDate, endDate }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -157,7 +157,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
         setTableTab('all');
       }
     }
-  }, [rawExpiryDataset.length, expiredDatasetOnly.length, upcomingDatasetOnly.length]);
+  }, [rawExpiryDataset.length, expiredDatasetOnly.length, upcomingDatasetOnly.length, filteredExpiryDataset.length]);
 
   // 5. Local Table filter based on Search input
   const searchedTableRows = useMemo(() => {
@@ -278,7 +278,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
       if (isDaily) {
         const parts = k.split('-');
         if (parts.length === 3) {
-          const [y, m, d] = parts;
+          const [_y, m, d] = parts;
           return `${parseInt(d, 10)} ${thaiMonthsShort[parseInt(m, 10) - 1]}`;
         }
         return k;
@@ -853,7 +853,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
                   },
                   grid: { borderColor: 'var(--border)', strokeDashArray: 4 },
                   tooltip: {
-                    custom: function({series, seriesIndex, dataPointIndex, w}) {
+                    custom: function({series, seriesIndex, dataPointIndex, _w}) {
                       const dateLabel = trendChartData.categories[dataPointIndex];
                       const val = series[seriesIndex][dataPointIndex];
                       return `
@@ -961,7 +961,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
                   },
                   grid: { borderColor: 'var(--border)', strokeDashArray: 4, padding: { right: 65, left: 10 } },
                   tooltip: {
-                    custom: function({series, seriesIndex, dataPointIndex, w}) {
+                    custom: function({_series, _seriesIndex, dataPointIndex, w}) {
                       const whName = warehouseChartData.fullCategories ? warehouseChartData.fullCategories[dataPointIndex] : w.config.xaxis.categories[dataPointIndex];
                       if (!whName) return '';
                       const whItems = expiredDatasetOnly.filter(r => r.คลัง === whName);
@@ -1189,7 +1189,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
                   },
                   grid: { borderColor: 'var(--border)', strokeDashArray: 4 },
                   tooltip: {
-                    custom: function({series, seriesIndex, dataPointIndex, w}) {
+                    custom: function({series, seriesIndex, dataPointIndex, _w}) {
                       const monthLabel = upcomingExpiryChartData.categories[dataPointIndex];
                       const val = series[seriesIndex][dataPointIndex];
                       return `

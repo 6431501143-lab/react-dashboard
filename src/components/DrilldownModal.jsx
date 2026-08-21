@@ -169,7 +169,7 @@ export default function DrilldownModal({ isOpen, onClose, title, summaryItems = 
         )}
 
         {/* Custom filters (e.g. YoY year tabs) */}
-        {filterBar && filterBar}
+        {filterBar}
 
         {summaryItems.length > 0 && (
           <div className="drilldown-summary-info" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '8px 0', borderBottom: '1px solid var(--border)', marginBottom: '12px' }}>

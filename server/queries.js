@@ -38,7 +38,7 @@ export const QUERIES = {
         lu.lot_number_id,
         lu.cur_quantity AS "จำนวน",            
         lu.small_unit_id AS "หน่วย",
-        TO_CHAR(TO_DATE(SUBSTRING(lu.last_move_date::text FROM 1 FOR 10), 'YYYY-MM-DD'), 'YYYY-MM-DD') AS "วันที่เคลื่อนไหวล่าสุ",
+        TO_CHAR(TO_DATE(SUBSTRING(lu.last_move_date::text FROM 1 FOR 10), 'YYYY-MM-DD'), 'YYYY-MM-DD') AS "วันที่เคลื่อนไหวล่าสุด",
         TO_CHAR(TO_DATE(SUBSTRING(lu.last_move_date::text FROM 1 FOR 10), 'YYYY-MM-DD'), 'YYYY-MM-DD') AS "วันโอน",
         AGE(CURRENT_DATE, TO_DATE(SUBSTRING(lu.last_move_date::text FROM 1 FOR 10), 'YYYY-MM-DD'))::text AS "ระยะเวลารวม", 
         ROUND(lu.cost_purchase, 1) AS "ราคาต่อหน่วย",
@@ -148,7 +148,7 @@ export const QUERIES = {
             GREATEST(CURRENT_DATE - TO_DATE(SUBSTRING(MIN(sc.update_date::text) FROM 1 FOR 7) || '-01', 'YYYY-MM-DD'), 1) AS actual_days_in_system,
             ROUND(SUM(ABS(COALESCE(NULLIF(TRIM(sc.qty::text), ''), '0')::numeric)) / GREATEST(CURRENT_DATE - TO_DATE(SUBSTRING(MIN(sc.update_date::text) FROM 1 FOR 7) || '-01', 'YYYY-MM-DD'), 1), 2) AS avg_daily_usage
         FROM stock_card sc
-        WHERE SUBSTRING(sc.update_date::text FROM 1 FOR 10) >= '2025-01-01'
+        WHERE SUBSTRING(sc.update_date::text FROM 1 FOR 10) >= TO_CHAR(CURRENT_DATE - INTERVAL '1 Year', 'YYYY-MM-DD')
           AND sc.fix_stock_method_id LIKE '-%'
           AND COALESCE(NULLIF(TRIM(sc.qty::text), ''), '0')::numeric < 0
         GROUP BY sc.stock_id, sc.item_id  

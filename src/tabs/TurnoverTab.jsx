@@ -2,33 +2,23 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 import KpiCard from '../components/KpiCard';
 import ResponsiveTable from '../components/ResponsiveTable';
-import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { 
-  RefreshCw, 
   ArrowUpRight, 
-  ArrowDownRight, 
-  Activity, 
   Search, 
-  ListFilter,
-  ArrowRightLeft,
-  Package,
-  Home,
-  Layers,
-  ArrowUpDown,
-  ArrowDownLeft,
-  TrendingUp,
-  BarChart2,
-  Calendar,
-  LogIn,
-  LogOut,
-  AlertCircle,
-  Hash
+  ArrowRightLeft, 
+  Package, 
+  Home, 
+  Layers, 
+  ArrowUpDown, 
+  ArrowDownLeft, 
+  TrendingUp, 
+  BarChart2, 
+  Calendar, 
+  LogIn, 
+  LogOut 
 } from 'lucide-react';
-import { formatDateToDDMMYY, formatBahtCurrency } from '../utils/helpers';
-
-const thaiMonth = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-const dayNamesThai = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+import { formatDateToDDMMYY } from '../utils/helpers';
 
 export default function TurnoverTab({ 
   turnoverData = {}, // { products, warehouses, months, aggregated, details, dowAggregated }
@@ -41,7 +31,6 @@ export default function TurnoverTab({
   const endDate = null;
   const [searchTerm, setSearchTerm] = useState('');
   const [directionFilter, setDirectionFilter] = useState('All'); // 'All', 'In', 'Out'
-  const [yoySortMode, setYoySortMode] = useState('date_asc'); // 'date_asc', 'qty_desc'
   
   // Dynamic Animation Series States
   const [monthlyAnimatedSeries, setMonthlyAnimatedSeries] = useState([]);
@@ -63,7 +52,6 @@ export default function TurnoverTab({
   const [modalNetTab, setModalNetTab] = useState('All'); // 'All', 'Positive', 'Negative'
   const [modalYearlyDay, setModalYearlyDay] = useState('All'); // 'All', '0'...'6'
   const [modalYearlyMonth, setModalYearlyMonth] = useState('All'); // 'All', '01'...'12'
-  const [modalYearlySort, setModalYearlySort] = useState('qty_desc');
   const [modalYearFilter, setModalYearFilter] = useState('All');
 
   // Main table dropdown filters (2024-2026)
@@ -1382,34 +1370,14 @@ export default function TurnoverTab({
     modalNetTab, 
     modalYearlyDay, 
     modalYearlyMonth, 
-    modalYearlySort,
-    modalYearFilter
+    modalYearFilter,
+    itemsHeaders,
+    movementsHeaders,
+    stocksHeaders,
+    netHeaders,
+    detailHeaders,
+    transactionHeaders
   ]);
-
-  const prodCodeForUniqueMonths = useMemo(() => {
-    if (drilldownType !== 'turnover_product_details' || !drilldownKey) return null;
-    return drilldownKey.split('|')[2];
-  }, [drilldownType, drilldownKey]);
-
-  const productUniqueMonths = useMemo(() => {
-    if (!prodCodeForUniqueMonths) return [];
-    const prodIdx = products.findIndex(p => p[0] === prodCodeForUniqueMonths);
-    if (prodIdx === -1) return [];
-    const monthsSet = new Set();
-    rawDetails.forEach(row => {
-      const isCompact = typeof row[1] === 'number';
-      const pIdx = isCompact ? row[1] : products.findIndex(p => p[0] === row[1]);
-      if (pIdx === prodIdx) {
-        monthsSet.add(row[0].substring(0, 7));
-      }
-    });
-    aggregated.forEach(aggRow => {
-      if (aggRow[4] === prodIdx && months[aggRow[0]]) {
-        monthsSet.add(months[aggRow[0]]);
-      }
-    });
-    return Array.from(monthsSet).sort().reverse();
-  }, [prodCodeForUniqueMonths, rawDetails, products, aggregated, months]);
 
   const modalFilterBar = useMemo(() => {
     if (
@@ -1596,9 +1564,7 @@ export default function TurnoverTab({
     modalNetTab, 
     modalYearlyDay, 
     modalYearlyMonth, 
-    modalYearlySort, 
-    modalYearFilter,
-    productUniqueMonths
+    modalYearFilter
   ]);
 
   // Nested drilldown push/pop
@@ -1845,7 +1811,7 @@ export default function TurnoverTab({
                   },
                   grid: { borderColor: 'var(--border)', strokeDashArray: 4 },
                   tooltip: {
-                    custom: function({series, seriesIndex, dataPointIndex, w}) {
+                    custom: function({series, _seriesIndex, dataPointIndex, _w}) {
                       const month = monthlyChartData.months[dataPointIndex];
                       const inVal = series[0][dataPointIndex] || 0;
                       const outVal = series[1][dataPointIndex] || 0;
@@ -1937,7 +1903,7 @@ export default function TurnoverTab({
                   },
                   grid: { borderColor: 'var(--border)', strokeDashArray: 4 },
                   tooltip: {
-                    custom: function({series, seriesIndex, dataPointIndex, w}) {
+                    custom: function({series, _seriesIndex, dataPointIndex, _w}) {
                       const year = yearlyChartData.years[dataPointIndex];
                       const inVal = series[0][dataPointIndex] || 0;
                       const outVal = series[1][dataPointIndex] || 0;
@@ -2027,7 +1993,7 @@ export default function TurnoverTab({
                   },
                   grid: { borderColor: 'var(--border)', strokeDashArray: 4 },
                   tooltip: {
-                    custom: function({series, seriesIndex, dataPointIndex, w}) {
+                    custom: function({series, _seriesIndex, dataPointIndex, _w}) {
                       const dow = dowChartData.categories[dataPointIndex];
                       const inVal = series[0][dataPointIndex] || 0;
                       const outVal = series[1][dataPointIndex] || 0;
@@ -2123,7 +2089,7 @@ export default function TurnoverTab({
                   },
                   grid: { borderColor: 'var(--border)', strokeDashArray: 4, padding: { right: 65, left: 10 } },
                   tooltip: {
-                    custom: function({series, seriesIndex, dataPointIndex, w}) {
+                    custom: function({series, seriesIndex, dataPointIndex, _w}) {
                       const name = topProductsChartData.fullCategories ? topProductsChartData.fullCategories[dataPointIndex] : topProductsChartData.categories[dataPointIndex];
                       const val = series[seriesIndex][dataPointIndex] || 0;
                       return `
