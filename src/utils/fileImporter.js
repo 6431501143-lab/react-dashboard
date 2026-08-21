@@ -380,7 +380,9 @@ export async function parseUploadedFile(file, activeTab = 'stagnant') {
         resolve({
           fileName: file.name,
           sheetName,
-          rowCount: Array.isArray(parsedData) ? parsedData.length : (parsedData.transactions?.length || 0),
+          rowCount: Array.isArray(parsedData) 
+            ? parsedData.length 
+            : (parsedData.transactions?.length || parsedData.details?.length || parsedData.aggregated?.length || 0),
           tabType: resultType,
           data: parsedData
         });

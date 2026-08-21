@@ -25,7 +25,7 @@ import {
   AlertCircle,
   Hash
 } from 'lucide-react';
-import { formatDateToDDMMYY } from '../utils/helpers';
+import { formatDateToDDMMYY, formatBahtCurrency } from '../utils/helpers';
 
 const thaiMonth = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 const dayNamesThai = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
@@ -79,11 +79,6 @@ export default function TurnoverTab({
     details: rawDetails = [],
     dowAggregated = []
   } = turnoverData;
-
-  // Formatting helper
-  const formatBahtCurrency = (val) => {
-    return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(val);
-  };
 
   const formatMonthYearThai = (mStr) => {
     if (!mStr || !mStr.includes('-')) return mStr;
