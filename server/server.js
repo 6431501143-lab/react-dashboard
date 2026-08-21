@@ -222,54 +222,80 @@ app.get('/api/turnover', (req, res) => {
 
 // ================= DAILY AUTO-SYNC SCHEDULER ================= //
 
-let nextScheduledSyncTime = null;
 let isScheduledSyncRunning = false;
 
 // Configurable Daily Auto-Sync (Default from .env or 08:00 AM)
 const SYNC_TARGET_HOUR = parseInt(process.env.SYNC_HOUR || '8', 10);
 const SYNC_TARGET_MINUTE = parseInt(process.env.SYNC_MINUTE || '0', 10);
 
+function getBangkokDateString() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); // YYYY-MM-DD
+}
+
 function scheduleDailyAutoSync(hour = SYNC_TARGET_HOUR, minute = SYNC_TARGET_MINUTE) {
-  function getMsUntilTargetTime() {
-    const now = new Date();
-    const nextTarget = new Date(now);
-    nextTarget.setHours(hour, minute, 0, 0);
-    if (now.getTime() >= nextTarget.getTime()) {
-      nextTarget.setDate(nextTarget.getDate() + 1);
+  const timeDisplay = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} น.`;
+  console.log(`⏰ [Auto-Sync Scheduler]: ระบบตั้งเวลาซิงค์อัตโนมัติประจำวันเวลา ${timeDisplay}`);
+
+  async function performDailySync(reason = 'เวลาประจำวัน') {
+    if (isScheduledSyncRunning) return;
+    if (!dbPool) {
+      console.warn(`⚠️ [Auto-Sync]: ยังไม่ได้เชื่อมต่อ PostgreSQL ข้ามรอบนี้ (${reason})`);
+      return;
     }
-    nextScheduledSyncTime = nextTarget.toISOString();
-    return nextTarget.getTime() - now.getTime();
+
+    isScheduledSyncRunning = true;
+    console.log(`\n======================================================`);
+    console.log(`⚡ [Auto-Sync]: ⏰ เริ่มต้น Auto-Sync ข้อมูลประจำวัน (${reason})...`);
+    console.log(`======================================================\n`);
+
+    try {
+      const result = await syncSnapshotFromPostgres(runReadOnlyQuery);
+      console.log(`✅ [Auto-Sync]: ซิงค์ข้อมูลประจำวันสำเร็จเรียบร้อย (${result.lastSyncedAt})\n`);
+    } catch (err) {
+      console.error(`❌ [Auto-Sync Error]:`, err.message);
+    } finally {
+      isScheduledSyncRunning = false;
+    }
   }
 
-  function scheduleNext() {
-    const ms = getMsUntilTargetTime();
-    const hours = (ms / (1000 * 60 * 60)).toFixed(2);
-    const timeDisplay = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} น.`;
-    console.log(`⏰ [Auto-Sync Scheduler]: กำหนดเวลาซิงค์อัตโนมัติรอบถัดไปเวลา ${timeDisplay} (อีกประมาณ ${hours} ชั่วโมง)`);
-
-    setTimeout(async () => {
-      if (isScheduledSyncRunning) return;
-      isScheduledSyncRunning = true;
-      console.log(`\n======================================================`);
-      console.log(`⚡ [Auto-Sync]: ⏰ เริ่มต้น Auto-Sync ข้อมูลประจำวันเวลา ${timeDisplay}...`);
-      console.log(`======================================================\n`);
-      try {
-        if (dbPool) {
-          const result = await syncSnapshotFromPostgres(runReadOnlyQuery);
-          console.log(`✅ [Auto-Sync]: ซิงค์ข้อมูลประจำวันสำเร็จเรียบร้อย (${result.lastSyncedAt})\n`);
-        } else {
-          console.warn(`⚠️ [Auto-Sync]: ยังไม่ได้เชื่อมต่อ PostgreSQL ข้ามรอบนี้`);
-        }
-      } catch (err) {
-        console.error(`❌ [Auto-Sync Error]:`, err.message);
-      } finally {
-        isScheduledSyncRunning = false;
+  // 1. Startup Check: เมื่อเปิดเซิร์ฟเวอร์ขึ้นมา ตรวจสอบทันทีว่าวันนี้ซิงค์แล้วหรือยัง
+  setTimeout(() => {
+    try {
+      const todayStr = getBangkokDateString();
+      const meta = getSyncMetadata();
+      if (!meta.lastSyncedDate || meta.lastSyncedDate !== todayStr) {
+        console.log(`📌 [Auto-Sync]: ตรวจพบวันใหม่ (ซิงค์ล่าสุด: ${meta.lastSyncedAt || 'ยังไม่มี'}) -> กำลังเริ่มซิงค์ข้อมูลของวันใหม่อัตโนมัติ...`);
+        performDailySync('เปิดเซิร์ฟเวอร์วันใหม่');
+      } else {
+        console.log(`✅ [Auto-Sync]: วันนี้ (${todayStr}) มีข้อมูลที่ซิงค์แล้ว (${meta.lastSyncedAt})`);
       }
-      scheduleNext();
-    }, ms);
-  }
+    } catch (e) {
+      console.error('Startup sync check error:', e);
+    }
+  }, 3000);
 
-  scheduleNext();
+  // 2. Heartbeat Monitor: ตรวจสอบทุกๆ 30 วินาทีอย่างแม่นยำ (รองรับทั้งการตื่นจาก Sleep Mode และการเปลี่ยนวัน)
+  let lastTriggeredDay = '';
+
+  setInterval(() => {
+    try {
+      const now = new Date();
+      const bkkHour = parseInt(now.toLocaleTimeString('en-US', { timeZone: 'Asia/Bangkok', hour: '2-digit', hour12: false }), 10);
+      const bkkMinute = parseInt(now.toLocaleTimeString('en-US', { timeZone: 'Asia/Bangkok', minute: '2-digit', hour12: false }), 10);
+      const todayStr = getBangkokDateString();
+
+      const isPastTargetTime = (bkkHour > hour) || (bkkHour === hour && bkkMinute >= minute);
+      const meta = getSyncMetadata();
+
+      if (isPastTargetTime && meta.lastSyncedDate !== todayStr && lastTriggeredDay !== todayStr) {
+        lastTriggeredDay = todayStr;
+        console.log(`🔔 [Auto-Sync Trigger]: ถึงรอบเวลาซิงค์ประจำวัน ${timeDisplay} (${todayStr})`);
+        performDailySync(`รอบเวลา ${timeDisplay}`);
+      }
+    } catch (e) {
+      console.error('Auto-sync heartbeat error:', e);
+    }
+  }, 30000);
 }
 
 // ================= BOOTSTRAP ================= //

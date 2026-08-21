@@ -220,7 +220,8 @@ export async function syncSnapshotFromPostgres(runReadOnlyQuery) {
 
       // Set timestamp
       const thaiTimestamp = getThaiFormattedTimestamp();
-      setSyncMetadata(thaiTimestamp);
+      const todayDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+      setSyncMetadata(thaiTimestamp, todayDateStr);
     });
 
     insertAll();

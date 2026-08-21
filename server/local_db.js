@@ -146,6 +146,7 @@ export function initLocalDb() {
 export function getSyncMetadata() {
   try {
     const row = localDb.prepare("SELECT value FROM sync_metadata WHERE key = 'last_synced_at'").get();
+    const dateRow = localDb.prepare("SELECT value FROM sync_metadata WHERE key = 'last_synced_date'").get();
     const countRow = localDb.prepare(`
       SELECT 
         (SELECT COUNT(*) FROM stagnant_stock) as stagnant_count,
@@ -157,22 +158,32 @@ export function getSyncMetadata() {
 
     return {
       lastSyncedAt: row ? row.value : null,
+      lastSyncedDate: dateRow ? dateRow.value : null,
       hasData: Boolean(row && countRow.stagnant_count > 0),
       rowCounts: countRow || {}
     };
   } catch {
-    return { lastSyncedAt: null, hasData: false, rowCounts: {} };
+    return { lastSyncedAt: null, lastSyncedDate: null, hasData: false, rowCounts: {} };
   }
 }
 
 /**
  * Save sync metadata
  */
-export function setSyncMetadata(timestampStr) {
+export function setSyncMetadata(timestampStr, dateStr) {
   const stmt = localDb.prepare(`
     INSERT INTO sync_metadata (key, value, updated_at) 
     VALUES ('last_synced_at', ?, CURRENT_TIMESTAMP)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
   `);
   stmt.run(timestampStr);
+
+  if (dateStr) {
+    const dateStmt = localDb.prepare(`
+      INSERT INTO sync_metadata (key, value, updated_at) 
+      VALUES ('last_synced_date', ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    `);
+    dateStmt.run(dateStr);
+  }
 }
