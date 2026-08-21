@@ -169,7 +169,17 @@ export default function App() {
   const refreshSnapshotStatus = useCallback(async () => {
     const meta = await getSnapshotStatus();
     if (meta && meta.lastSyncedAt) {
-      setSnapshotMeta(meta);
+      setSnapshotMeta(prev => {
+        if (
+          prev.lastSyncedAt === meta.lastSyncedAt &&
+          prev.hasData === meta.hasData &&
+          prev.autoSyncTime === meta.autoSyncTime &&
+          prev.nextScheduledSync === meta.nextScheduledSync
+        ) {
+          return prev;
+        }
+        return meta;
+      });
       if (meta.hasData) setIsLiveDb(true);
 
       // If timestamp updated in background, auto-reload active tab

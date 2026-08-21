@@ -77,18 +77,47 @@ export default function ApexDonut({
     return () => container.removeEventListener('click', handleDomClick, true);
   }, []);
 
+  const prevPropsRef = useRef({ seriesKey: '', labelsKey: '', colorsKey: '' });
+
   useEffect(() => {
     if (!chartContainerRef.current) return;
-    if (!series || series.length === 0 || series.every(v => v === 0)) return;
+    if (!series || series.length === 0 || series.every(v => v === 0)) {
+      if (chartInstanceRef.current) {
+        try { chartInstanceRef.current.destroy(); } catch {}
+        chartInstanceRef.current = null;
+      }
+      return;
+    }
+
+    const isSameData = prevPropsRef.current.seriesKey === seriesKey && 
+                       prevPropsRef.current.labelsKey === labelsKey && 
+                       prevPropsRef.current.colorsKey === colorsKey;
 
     if (chartInstanceRef.current) {
-      try {
-        chartInstanceRef.current.destroy();
-      } catch {
-        // ignore
+      if (!isSameData) {
+        prevPropsRef.current = { seriesKey, labelsKey, colorsKey };
+        try {
+          chartInstanceRef.current.updateOptions({
+            labels: labels,
+            colors: colors,
+            legend: {
+              show: showLegend,
+              position: 'bottom',
+              horizontalAlign: 'center',
+              fontSize: legendFontSize,
+              itemMargin: { horizontal: 8, vertical: 4 },
+              ...legendOptions
+            }
+          }, false, false);
+          chartInstanceRef.current.updateSeries(series, false);
+        } catch {
+          // fallback to recreation if update fails
+        }
       }
-      chartInstanceRef.current = null;
+      return;
     }
+
+    prevPropsRef.current = { seriesKey, labelsKey, colorsKey };
 
     const options = {
       series: series,
@@ -100,10 +129,9 @@ export default function ApexDonut({
         animations: {
           enabled: true,
           easing: 'easeinout',
-          speed: 1000,
+          speed: 800,
           dynamicAnimation: {
-            enabled: true,
-            speed: 800
+            enabled: false
           }
         },
         events: {

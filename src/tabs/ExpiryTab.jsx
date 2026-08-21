@@ -792,19 +792,30 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
             </div>
             <div className="chart-body" style={{ display: 'block', width: '100%', minWidth: 0 }}>
               <Chart 
-                key={`expiry-trend-${trendChartData.categories.length}`}
+                key="expiry-monthly-trend-chart"
                 width="100%" 
                 options={{
                   chart: {
                     type: 'area',
                     height: 300,
-                    toolbar: { show: false },
+                    toolbar: { 
+                      show: true,
+                      tools: {
+                        download: false,
+                        selection: true,
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                      },
+                      autoSelected: 'zoom'
+                    },
                     animations: {
                       enabled: true,
                       easing: 'easeinout',
-                      speed: 1200,
-                      animateGradually: { enabled: true, delay: 150 },
-                      dynamicAnimation: { enabled: true, speed: 1200 }
+                      speed: 800,
+                      dynamicAnimation: { enabled: false }
                     },
                     events: {
                       markerClick: (e, chartCtx, config) => {
@@ -867,7 +878,7 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
                     }
                   }
                 }}
-                series={trendAnimatedSeries.length > 0 ? trendAnimatedSeries : [{ name: 'มูลค่าสินค้า', data: [] }]}
+                series={[{ name: 'มูลค่าสินค้า', data: trendChartData.values || [] }]}
                 type="area"
                 height={300}
               />
@@ -1133,19 +1144,30 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
             </div>
             <div className="chart-body" style={{ display: 'block', width: '100%', minWidth: 0 }}>
               <Chart 
-                key={`expiry-upcoming-${upcomingExpiryChartData.categories.length}`}
+                key="expiry-upcoming-area-chart"
                 width="100%" 
                 options={{
                   chart: {
                     type: 'area',
                     height: 300,
-                    toolbar: { show: false },
+                    toolbar: { 
+                      show: true,
+                      tools: {
+                        download: false,
+                        selection: true,
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                      },
+                      autoSelected: 'zoom'
+                    },
                     animations: {
                       enabled: true,
                       easing: 'easeinout',
-                      speed: 1200,
-                      animateGradually: { enabled: true, delay: 150 },
-                      dynamicAnimation: { enabled: true, speed: 1200 }
+                      speed: 800,
+                      dynamicAnimation: { enabled: false }
                     },
                     events: {
                       markerClick: (e, chartCtx, config) => {

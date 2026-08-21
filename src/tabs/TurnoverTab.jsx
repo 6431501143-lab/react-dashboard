@@ -1772,18 +1772,29 @@ export default function TurnoverTab({
             </div>
             <div className="chart-body" style={{ display: 'block', width: '100%' }}>
               <Chart 
-                key={`turnover-monthly-${monthlyChartData.months.length}`}
+                key="turnover-monthly-line-chart"
                 width="100%" 
                 options={{
                   chart: {
                     type: 'line',
-                    toolbar: { show: false },
+                    toolbar: { 
+                      show: true,
+                      tools: {
+                        download: false,
+                        selection: true,
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                      },
+                      autoSelected: 'zoom'
+                    },
                     animations: {
                       enabled: true,
                       easing: 'easeinout',
-                      speed: 1200,
-                      animateGradually: { enabled: true, delay: 150 },
-                      dynamicAnimation: { enabled: true, speed: 1200 }
+                      speed: 800,
+                      dynamicAnimation: { enabled: false }
                     },
                     events: {
                       markerClick: (e, chartCtx, config) => {
