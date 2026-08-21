@@ -33,3 +33,5 @@ server/data/
 *.njsproj
 *.sln
 *.sw?
+*.exe
+cloudflared*
