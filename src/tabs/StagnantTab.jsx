@@ -5,7 +5,14 @@ import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { Package, List, DollarSign, Home, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatDateToDDMMYY, isValidISODate } from '../utils/helpers';
+import { 
+  formatDateToDDMMYY, 
+  isValidISODate, 
+  formatBahtCurrency, 
+  formatFullBahtCurrency, 
+  getStagnantYears 
+} from '../utils/helpers';
+import { CHART_PALETTE_PRIMARY, RISK_COLOR_PALETTE } from '../constants/chartColors';
 
 export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], selectedProducts = [], selectedYear = 'All' }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,27 +28,6 @@ export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], 
   const [modalCustomHeaders, setModalCustomHeaders] = useState(null);
 
   const chartPageSize = 11;
-
-  // Stagnant age parser helper
-  const getStagnantYears = (durationStr) => {
-    if (!durationStr) return 0;
-    const str = String(durationStr).trim().toLowerCase();
-    if (str === '0 days' || str === '0') return 0;
-    const matchYear = str.match(/^(\d+(?:\.\d+)?)\s*(?:year|yr|ปี)/i);
-    if (matchYear) {
-      return Math.floor(parseFloat(matchYear[1])) || 1;
-    }
-    const matchMon = str.match(/^(\d+)\s*(?:mon|month|เดือน)/i);
-    if (matchMon) {
-      const m = parseInt(matchMon[1], 10);
-      return Math.floor(m / 12);
-    }
-    const num = parseFloat(str);
-    if (!isNaN(num) && num > 0) {
-      return Math.floor(num);
-    }
-    return 0;
-  };
 
   // 1. Filter Stagnant Dataset based on selection criteria
   const filteredDataset = useMemo(() => {

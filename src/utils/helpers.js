@@ -83,6 +83,135 @@ export function formatBahtCurrency(val) {
 }
 
 /**
+ * Format Full Thai Baht currency with exact commas and ฿ symbol
+ */
+export function formatFullBahtCurrency(val) {
+  if (val === undefined || val === null || isNaN(val)) return '฿0';
+  const num = Number(val);
+  return '฿' + Math.round(num).toLocaleString('th-TH');
+}
+
+/**
+ * Format numeric value in compact 1.2k / 1.5M format
+ */
+export function formatIntegerMk(val) {
+  if (val === undefined || val === null) return '';
+  const num = Number(val);
+  if (isNaN(num)) return '';
+  if (num >= 1000000) {
+    const formatted = (num / 1000000).toFixed(1);
+    return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'M';
+  }
+  if (num >= 1000) {
+    const formatted = (num / 1000).toFixed(1);
+    return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'k';
+  }
+  const formatted = num.toFixed(1);
+  return formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
+}
+
+/**
+ * Format YYYY-MM to short Thai month and year (e.g. "2024-05" -> "พ.ค. 24")
+ */
+export function formatMonthYearThai(mStr) {
+  if (!mStr || !mStr.includes('-')) return mStr || '';
+  const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const [yearStr, monthStr] = mStr.split('-');
+  const shortYear = yearStr.substring(2);
+  const monthIdx = parseInt(monthStr, 10) - 1;
+  return `${thaiMonths[monthIdx] || monthStr} ${shortYear}`;
+}
+
+/**
+ * Format YYYY-MM to full Thai month and Christian year (e.g. "2024-05" -> "พฤษภาคม 2024")
+ */
+export function formatMonthYearThaiLong(mStr) {
+  if (!mStr) return 'ทั้งหมด';
+  if (!mStr.includes('-')) return mStr;
+  const thaiMonthsLong = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+  const [yearStr, monthStr] = mStr.split('-');
+  const christianYear = parseInt(yearStr, 10);
+  const monthIdx = parseInt(monthStr, 10) - 1;
+  return `${thaiMonthsLong[monthIdx] || monthStr} ${christianYear}`;
+}
+
+/**
+ * Convert Date instance to local YYYY-MM
+ */
+export function getLocalYYYYMM(date) {
+  if (!date) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+/**
+ * Convert Date instance to local YYYY-MM-DD
+ */
+export function getLocalYYYYMMDD(date) {
+  if (!date) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Calculate remaining days / months until expiry from ISO date string
+ */
+export function formatRemainingTime(dateStr) {
+  if (!dateStr || !isValidISODate(dateStr)) return '-';
+  const todayBkkStr = getBangkokDateString();
+  const today = new Date(todayBkkStr);
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return 'หมดอายุแล้ว';
+  if (diffDays > 30) {
+    const mons = Math.floor(diffDays / 30.4375);
+    const days = Math.floor(diffDays % 30.4375);
+    return days > 0 ? `อีก ${mons} เดือน ${days} วัน` : `อีก ${mons} เดือน`;
+  }
+  return `อีก ${diffDays} วัน`;
+}
+
+/**
+ * Extract integer stagnant years from duration string
+ */
+export function getStagnantYears(durationStr) {
+  if (!durationStr) return 1;
+  const match = String(durationStr).match(/(\d+)\s*(?:year|ปี)/i);
+  return match ? parseInt(match[1], 10) : 1;
+}
+
+/**
+ * Extract integer expired years from duration string
+ */
+export function getExpiryYears(durationStr) {
+  if (!durationStr) return 0;
+  const match = String(durationStr).match(/(\d+)\s*(?:year|ปี)/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+/**
+ * Extract total expired months from duration string
+ */
+export function getExpiryTotalMonths(durationStr) {
+  if (!durationStr) return 0;
+  const str = String(durationStr).toLowerCase();
+  let totalMonths = 0;
+  const yearMatch = str.match(/(\d+)\s*(?:year|yr|ปี)/);
+  if (yearMatch) totalMonths += parseInt(yearMatch[1], 10) * 12;
+  const monMatch = str.match(/(\d+)\s*(?:mon|month|ด|เดือน)/);
+  if (monMatch) totalMonths += parseInt(monMatch[1], 10);
+  return totalMonths;
+}
+
+/**
  * Clean product codes with floating zeros (e.g. 120000 -> 12)
  */
 export function cleanProductCode(code) {

@@ -11,12 +11,14 @@ import {
   getSnapshotStatus,
   triggerSnapshotSync
 } from './services/api';
-import StagnantTab from './tabs/StagnantTab';
-import ExpiryTab from './tabs/ExpiryTab';
-import TurnoverTab from './tabs/TurnoverTab';
-import InventoryTab from './tabs/InventoryTab';
-import DispatchTab from './tabs/DispatchTab';
 import EmptyState from './components/EmptyState';
+
+// Code Splitting / Lazy load tabs for high performance
+const StagnantTab = React.lazy(() => import('./tabs/StagnantTab'));
+const ExpiryTab = React.lazy(() => import('./tabs/ExpiryTab'));
+const TurnoverTab = React.lazy(() => import('./tabs/TurnoverTab'));
+const InventoryTab = React.lazy(() => import('./tabs/InventoryTab'));
+const DispatchTab = React.lazy(() => import('./tabs/DispatchTab'));
 import { 
   RefreshCw, 
   FileSpreadsheet, 
@@ -718,7 +720,19 @@ export default function App() {
               onFileUpload={handleFileUpload}
             />
           ) : (
-            <>
+            <React.Suspense fallback={
+              <div className="medical-loading-container">
+                <div className="medical-loading-card">
+                  <div className="medical-spinner-wrapper">
+                    <div className="medical-spinner-ring"></div>
+                    <div className="medical-spinner-inner"></div>
+                    <Activity className="medical-spinner-icon" size={24} />
+                  </div>
+                  <div className="medical-loading-title">กำลังโหลดข้อมูลแท็บ...</div>
+                  <div className="medical-loading-subtext">กำลังเตรียมมุมมองแดชบอร์ด</div>
+                </div>
+              </div>
+            }>
               {activeTab === 'stagnant' && (
                 <StagnantTab 
                   rawDataset={currentStagnantData}
@@ -763,7 +777,7 @@ export default function App() {
                   endDate={endDate}
                 />
               )}
-            </>
+            </React.Suspense>
           )}
         </div>
       </div>

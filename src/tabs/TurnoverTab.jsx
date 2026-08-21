@@ -18,7 +18,17 @@ import {
   LogIn, 
   LogOut 
 } from 'lucide-react';
-import { formatDateToDDMMYY } from '../utils/helpers';
+import { 
+  formatDateToDDMMYY, 
+  formatMonthYearThai, 
+  formatMonthYearThaiLong, 
+  getLocalYYYYMM, 
+  getLocalYYYYMMDD, 
+  formatIntegerMk, 
+  cleanProductCode 
+} from '../utils/helpers';
+import { THAI_MONTHS_LONG, THAI_DAYS_OF_WEEK, MONTHS_OF_YEAR } from '../constants/dateConstants';
+import { CHART_PALETTE_PRIMARY } from '../constants/chartColors';
 
 export default function TurnoverTab({ 
   turnoverData = {}, // { products, warehouses, months, aggregated, details, dowAggregated }
@@ -67,60 +77,6 @@ export default function TurnoverTab({
     details: rawDetails = [],
     dowAggregated = []
   } = turnoverData;
-
-  const formatMonthYearThai = (mStr) => {
-    if (!mStr || !mStr.includes('-')) return mStr;
-    const [yearStr, monthStr] = mStr.split('-');
-    const shortYear = yearStr.substring(2); // "20", "24" etc.
-    const monthIdx = parseInt(monthStr, 10) - 1;
-    const thaiMonths = ["ม.ค", "ก.พ", "มี.ค", "เม.ย", "พ.ค", "มิ.ย", "ก.ค", "ส.ค", "ก.ย", "ต.ค", "พ.ย", "ธ.ค"];
-    return `${thaiMonths[monthIdx]} ${shortYear}`;
-  };
-
-  const formatMonthYearThaiLong = (mStr) => {
-    if (!mStr) return 'ทั้งหมด';
-    if (!mStr.includes('-')) return mStr;
-    const [yearStr, monthStr] = mStr.split('-');
-    const christianYear = parseInt(yearStr, 10);
-    const monthIdx = parseInt(monthStr, 10) - 1;
-    const thaiMonthsLong = [
-      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-    ];
-    return `${thaiMonthsLong[monthIdx]} ${christianYear}`;
-  };
-
-  const getLocalYYYYMM = (date) => {
-    if (!date) return '';
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    return `${y}-${m}`;
-  };
-
-  // Convert Date to YYYY-MM-DD
-  const getLocalYYYYMMDD = (date) => {
-    if (!date) return '';
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
-
-  const formatIntegerMk = (val) => {
-    if (val === undefined || val === null) return '';
-    const num = Number(val);
-    if (isNaN(num)) return '';
-    if (num >= 1000000) {
-      const formatted = (num / 1000000).toFixed(1);
-      return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'M';
-    }
-    if (num >= 1000) {
-      const formatted = (num / 1000).toFixed(1);
-      return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'k';
-    }
-    const formatted = num.toFixed(1);
-    return formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
-  };
 
   // Dynamic Available Years from rawDetails and months
   const availableYears = useMemo(() => {
@@ -605,16 +561,6 @@ export default function TurnoverTab({
     return () => clearTimeout(timer);
   }, [transfersChartData]);
 
-  // Helper to clean product codes from float string representations
-  const cleanProductCode = (code) => {
-    if (!code) return '';
-    const str = String(code);
-    if (str.length > 8 && /^\d+$/.test(str)) {
-      return str.replace(/0+$/, '');
-    }
-    return str;
-  };
-
   const detailHeaders = useMemo(() => [
     { key: 'item_id', label: 'รหัสสินค้า', style: { width: '180px', minWidth: '180px', whiteSpace: 'nowrap' }, cellRender: (row, val) => cleanProductCode(val) },
     { key: 'name', label: 'ชื่อสินค้า', style: { whiteSpace: 'normal', width: '380px', minWidth: '380px' } },
@@ -703,8 +649,8 @@ export default function TurnoverTab({
     let summary = [];
     let titleStr = '';
 
-    const thaiMonth = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-    const dayNamesThai = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+    const thaiMonth = THAI_MONTHS_LONG;
+    const dayNamesThai = THAI_DAYS_OF_WEEK;
 
     if (drilldownType === 'turnover_kpi_items') {
       titleStr = "รายชื่อสินค้าที่มีการเคลื่อนไหว (Unique Items)";

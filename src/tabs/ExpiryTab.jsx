@@ -5,7 +5,18 @@ import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { Package, Hash, DollarSign, AlertCircle, Clock, Search, Layers } from 'lucide-react';
-import { formatDateToDDMMYY, getBangkokDateString, isValidISODate } from '../utils/helpers';
+import { 
+  formatDateToDDMMYY, 
+  getBangkokDateString, 
+  isValidISODate, 
+  formatBahtCurrency, 
+  formatFullBahtCurrency, 
+  formatRemainingTime, 
+  getExpiryYears, 
+  getExpiryTotalMonths 
+} from '../utils/helpers';
+import { THAI_MONTHS_SHORT } from '../constants/dateConstants';
+import { CHART_PALETTE_PRIMARY, CHART_PALETTE_EXTENDED } from '../constants/chartColors';
 
 export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = [], selectedProducts = [], startDate, endDate }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,31 +37,6 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
 
   // วันปัจจุบัน ตามเวลาประเทศไทย (UTC+7)
   const todayStr = useMemo(() => getBangkokDateString(), []);
-
-  // Helper: Extract expiry years from duration string
-  const getExpiryYears = (durationStr) => {
-    if (!durationStr) return 0;
-    const match = durationStr.toString().match(/^(\d+)\s+year/);
-    return match ? parseInt(match[1]) : 0;
-  };
-
-  // Helper: Extract total expired months from string
-  const getExpiryTotalMonths = (durationStr) => {
-    if (!durationStr) return 0;
-    let months = 0;
-    
-    const yearMatch = durationStr.toString().match(/(\d+)\s+year/);
-    if (yearMatch) {
-      months += parseInt(yearMatch[1]) * 12;
-    }
-    
-    const monMatch = durationStr.toString().match(/(\d+)\s+mon/);
-    if (monMatch) {
-      months += parseInt(monMatch[1]);
-    }
-    
-    return months;
-  };
 
   // Helper: คำนวณและแสดงระยะเวลาหมดอายุภาษาไทยแม่นยำ (เช่น "13 วัน", "2 เดือน 5 วัน", "1 ปี 2 เดือน")
   const formatExpiredDurationLabel = (val, row) => {
