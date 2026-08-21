@@ -40,7 +40,7 @@ export async function checkServerHealth() {
 // Get Snapshot Metadata Status
 export async function getSnapshotStatus() {
   try {
-    const res = await fetch(`${API_BASE_URL}/snapshot/status`, { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${API_BASE_URL}/snapshot/status`, { signal: AbortSignal.timeout(8000) });
     if (res.ok) {
       return await res.json();
     }

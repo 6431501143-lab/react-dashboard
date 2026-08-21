@@ -97,8 +97,7 @@ app.get('/api/snapshot/status', (req, res) => {
     const status = getSyncMetadata();
     res.json({
       ...status,
-      autoSyncTime: '08:00 น.',
-      nextScheduledSync: nextScheduledSyncTime
+      autoSyncTime: '08:00 น.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
