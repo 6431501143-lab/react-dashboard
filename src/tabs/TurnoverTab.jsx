@@ -1777,19 +1777,7 @@ export default function TurnoverTab({
                 options={{
                   chart: {
                     type: 'line',
-                    toolbar: { 
-                      show: true,
-                      tools: {
-                        download: false,
-                        selection: true,
-                        zoom: true,
-                        zoomin: true,
-                        zoomout: true,
-                        pan: true,
-                        reset: true
-                      },
-                      autoSelected: 'zoom'
-                    },
+                    toolbar: { show: false },
                     animations: {
                       enabled: true,
                       easing: 'easeinout',
