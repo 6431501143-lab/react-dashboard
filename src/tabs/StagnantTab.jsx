@@ -4,7 +4,8 @@ import KpiCard from '../components/KpiCard';
 import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
-import { Package, List, DollarSign, Home, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import SearchBar from '../components/SearchBar';
+import { Package, List, DollarSign, Home, ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   formatDateToDDMMYY, 
   isValidISODate, 
@@ -699,16 +700,11 @@ export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], 
         <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <h2 className="table-title">รายการสินค้าไม่เคลื่อนไหวทั้งหมด</h2>
           <div className="table-actions">
-            <div className="search-container" style={{ display: 'flex', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px 8px', gap: '6px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                placeholder="ค้นหาชื่อ, รหัส, คลัง, LOT..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ background: 'none', border: 'none', color: 'inherit', outline: 'none', fontSize: '0.85rem' }}
-              />
-            </div>
+            <SearchBar 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="ค้นหาชื่อ, รหัส, คลัง, LOT..."
+            />
           </div>
         </div>
 

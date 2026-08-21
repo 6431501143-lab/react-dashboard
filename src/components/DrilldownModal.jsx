@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Download, X, ArrowLeft } from 'lucide-react';
+import { Download, X, ArrowLeft } from 'lucide-react';
 import ResponsiveTable from './ResponsiveTable';
+import SearchBar from './SearchBar';
 import * as XLSX from 'xlsx';
 
 export default function DrilldownModal({ isOpen, onClose, title, summaryItems = [], headers, rows, filename = 'drilldown_export.xlsx', filterBar, tableMaxWidth = 'none', onRowClick, onBack, disablePills = false }) {
@@ -73,16 +74,12 @@ export default function DrilldownModal({ isOpen, onClose, title, summaryItems = 
             {title}
           </h3>
           <div className="modal-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div className="modal-inline-search" style={{ display: 'flex', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px 8px', gap: '6px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                placeholder="Search item..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ background: 'none', border: 'none', color: 'inherit', outline: 'none', fontSize: '0.85rem' }}
-              />
-            </div>
+            <SearchBar 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="ค้นหาในตาราง..."
+              maxWidth="240px"
+            />
             <button 
               className="modal-action-btn" 
               onClick={handleExport}

@@ -4,7 +4,8 @@ import KpiCard from '../components/KpiCard';
 import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
-import { TrendingUp, AlertTriangle, CheckCircle, Search, HelpCircle } from 'lucide-react';
+import SearchBar from '../components/SearchBar';
+import { TrendingUp, AlertTriangle, CheckCircle, HelpCircle } from 'lucide-react';
 
 export default function InventoryTab({ 
   rawInventoryDataset = [], 
@@ -957,16 +958,11 @@ export default function InventoryTab({
               </button>
             </div>
 
-            <div className="search-container" style={{ display: 'flex', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px 8px', gap: '6px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                placeholder="ค้นหาชื่อ หรือ Item ID..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ background: 'none', border: 'none', color: 'inherit', outline: 'none', fontSize: '0.85rem' }}
-              />
-            </div>
+            <SearchBar 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="ค้นหาชื่อ หรือ Item ID..."
+            />
           </div>
         </div>
 

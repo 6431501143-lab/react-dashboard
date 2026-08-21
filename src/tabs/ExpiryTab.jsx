@@ -4,7 +4,8 @@ import KpiCard from '../components/KpiCard';
 import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
-import { Package, Hash, DollarSign, AlertCircle, Clock, Search, Layers } from 'lucide-react';
+import SearchBar from '../components/SearchBar';
+import { Package, Hash, DollarSign, AlertCircle, Clock, Layers } from 'lucide-react';
 import { 
   formatDateToDDMMYY, 
   getBangkokDateString, 
@@ -1277,16 +1278,11 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
 
           {/* Search Box */}
           <div className="table-actions">
-            <div className="search-container" style={{ display: 'flex', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', gap: '8px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                placeholder="ค้นหาชื่อ, รหัส, คลัง, LOT..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ background: 'none', border: 'none', color: 'inherit', outline: 'none', fontSize: '0.85rem', width: '180px' }}
-              />
-            </div>
+            <SearchBar 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="ค้นหาชื่อ, รหัส, คลัง, LOT..."
+            />
           </div>
         </div>
 

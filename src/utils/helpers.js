@@ -212,6 +212,22 @@ export function getExpiryTotalMonths(durationStr) {
 }
 
 /**
+ * Standard reusable ApexCharts custom tooltip generator
+ */
+export function renderChartTooltip(title, items = []) {
+  const bodyHtml = items
+    .filter(it => it && it.label && it.value !== undefined && it.value !== null)
+    .map(it => `<div><strong>${it.label}:</strong> <span style="${it.color ? `color: ${it.color}; font-weight: 700;` : ''}">${it.value}</span></div>`)
+    .join('');
+  return `
+    <div class="custom-chart-tooltip">
+      <div class="tooltip-header">${title || ''}</div>
+      <div class="tooltip-body">${bodyHtml}</div>
+    </div>
+  `;
+}
+
+/**
  * Clean product codes with floating zeros (e.g. 120000 -> 12)
  */
 export function cleanProductCode(code) {

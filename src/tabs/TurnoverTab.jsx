@@ -3,9 +3,9 @@ import Chart from 'react-apexcharts';
 import KpiCard from '../components/KpiCard';
 import ResponsiveTable from '../components/ResponsiveTable';
 import DrilldownModal from '../components/DrilldownModal';
+import SearchBar from '../components/SearchBar';
 import { 
   ArrowUpRight, 
-  Search, 
   ArrowRightLeft, 
   Package, 
   Home, 
@@ -2331,16 +2331,11 @@ export default function TurnoverTab({
               </button>
             </div>
 
-            <div className="search-container" style={{ display: 'flex', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px 8px', gap: '6px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                placeholder="ค้นหาบิล, รหัสสินค้า, คลัง..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ background: 'none', border: 'none', color: 'inherit', outline: 'none', fontSize: '0.85rem' }}
-              />
-            </div>
+            <SearchBar 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="ค้นหาบิล, รหัสสินค้า, คลัง..."
+            />
           </div>
         </div>
 
