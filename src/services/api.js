@@ -4,11 +4,22 @@
 
 const CLOUDFLARE_TUNNEL_URL = 'https://layers-supplied-then-transportation.trycloudflare.com/api';
 
+function isLocalOrPrivateNetwork() {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  if (!host) return false;
+  return (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host.endsWith('.local') ||
+    host.startsWith('10.') ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    host.startsWith('192.168.')
+  );
+}
+
 const API_BASE_URL = typeof window !== 'undefined'
-  ? (window.location.hostname === 'localhost' || 
-     window.location.hostname === '127.0.0.1' || 
-     window.location.hostname.startsWith('10.') || 
-     window.location.hostname.startsWith('192.')
+  ? (isLocalOrPrivateNetwork()
       ? `http://${window.location.hostname}:5000/api`
       : (import.meta.env.VITE_API_URL || CLOUDFLARE_TUNNEL_URL))
   : 'http://localhost:5000/api';
@@ -47,8 +58,14 @@ export async function triggerSnapshotSync() {
     signal: AbortSignal.timeout(180000) 
   });
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'การซิงค์ข้อมูลล้มเหลว');
+    let errorMsg = 'การซิงค์ข้อมูลล้มเหลว';
+    try {
+      const err = await res.json();
+      errorMsg = err.error || err.message || errorMsg;
+    } catch {
+      // response is not json
+    }
+    throw new Error(errorMsg);
   }
   return await res.json();
 }

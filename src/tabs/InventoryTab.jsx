@@ -5,7 +5,7 @@ import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { Database, TrendingUp, AlertTriangle, CheckCircle, Search, HelpCircle } from 'lucide-react';
-import { formatDateToDDMMYY } from '../utils/helpers';
+import { formatDateToDDMMYY, formatBahtCurrency } from '../utils/helpers';
 
 export default function InventoryTab({ 
   rawInventoryDataset = [], 
@@ -31,16 +31,16 @@ export default function InventoryTab({
   const [modalHeaders, setModalHeaders] = useState([]);
   const [modalSummaryItems, setModalSummaryItems] = useState([]);
 
-  // Format currency helper
-  const formatBahtCurrency = (val) => {
-    return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(val);
-  };
-
   // 1. Filter raw inventory dataset based on criteria
   const filteredDataset = useMemo(() => {
     const filtered = rawInventoryDataset.filter(row => {
-      // Only filter out if active_status is explicitly 0
-      if (row.active_status !== undefined && row.active_status !== null && row.active_status !== 1 && row.active_status !== true) return false;
+      // Only filter out if active_status is explicitly inactive (N, 0, false, Inactive)
+      if (row.active_status !== undefined && row.active_status !== null) {
+        const s = String(row.active_status).trim().toUpperCase();
+        if (s === 'N' || s === '0' || s === 'FALSE' || s === 'INACTIVE' || s === 'I') {
+          return false;
+        }
+      }
       const wh = row.warehouse || row.คลัง || '';
       if (selectedWarehouses.length > 0 && wh && !selectedWarehouses.includes(wh)) return false;
       const itemId = row.item_id || row.รหัสสินค้า || '';

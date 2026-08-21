@@ -15,18 +15,7 @@ import {
   PieChart, 
   BarChart2
 } from 'lucide-react';
-import { formatDateToDDMMYY } from '../utils/helpers';
-
-// Helper function to strip unnecessary trailing zeros from float-parsed codes
-function cleanProductCode(code) {
-  if (!code) return '';
-  const str = String(code).trim();
-  if (/^\d+$/.test(str) && str.length >= 12 && str.endsWith('0000')) {
-    const cleaned = str.replace(/0+$/, '');
-    return cleaned || '0';
-  }
-  return str;
-}
+import { formatDateToDDMMYY, cleanProductCode } from '../utils/helpers';
 
 export default function DispatchTab({ 
   dispatchData = {}, 

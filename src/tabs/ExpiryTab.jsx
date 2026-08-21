@@ -5,7 +5,7 @@ import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { Package, Hash, DollarSign, AlertCircle, Clock, Search, Layers } from 'lucide-react';
-import { formatDateToDDMMYY } from '../utils/helpers';
+import { formatDateToDDMMYY, getBangkokDateString, formatBahtCurrency } from '../utils/helpers';
 
 export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = [], selectedProducts = [], startDate, endDate }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,8 +24,8 @@ export default function ExpiryTab({ rawExpiryDataset = [], selectedWarehouses = 
   const [modalSummaryItems, setModalSummaryItems] = useState([]);
   const [modalCustomHeaders, setModalCustomHeaders] = useState(null);
 
-  // วันปัจจุบัน (สำหรับตัดข้อมูลเข้มงวด)
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  // วันปัจจุบัน ตามเวลาประเทศไทย (UTC+7)
+  const todayStr = useMemo(() => getBangkokDateString(), []);
 
   // Helper: Extract expiry years from duration string
   const getExpiryYears = (durationStr) => {

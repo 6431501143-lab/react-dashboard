@@ -5,7 +5,7 @@ import ResponsiveTable from '../components/ResponsiveTable';
 import ApexDonut from '../components/ApexDonut';
 import DrilldownModal from '../components/DrilldownModal';
 import { Package, List, DollarSign, Home, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatDateToDDMMYY } from '../utils/helpers';
+import { formatDateToDDMMYY, formatBahtCurrency } from '../utils/helpers';
 
 export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], selectedProducts = [], selectedYear = 'All' }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,8 +24,9 @@ export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], 
 
   // Stagnant age parser helper
   const getStagnantYears = (durationStr) => {
-    if (!durationStr) return 1;
+    if (!durationStr) return 0;
     const str = String(durationStr).trim().toLowerCase();
+    if (str === '0 days' || str === '0') return 0;
     const matchYear = str.match(/^(\d+(?:\.\d+)?)\s*(?:year|yr|ปี)/i);
     if (matchYear) {
       return Math.floor(parseFloat(matchYear[1])) || 1;
@@ -33,13 +34,13 @@ export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], 
     const matchMon = str.match(/^(\d+)\s*(?:mon|month|เดือน)/i);
     if (matchMon) {
       const m = parseInt(matchMon[1], 10);
-      return m >= 12 ? Math.floor(m / 12) : 1;
+      return Math.floor(m / 12);
     }
     const num = parseFloat(str);
     if (!isNaN(num) && num > 0) {
       return Math.floor(num);
     }
-    return 1;
+    return 0;
   };
 
   // 1. Filter Stagnant Dataset based on selection criteria
@@ -53,7 +54,7 @@ export default function StagnantTab({ rawDataset = [], selectedWarehouses = [], 
 
       // Year Filter (based on Transfer Date)
       if (selectedYear !== 'All') {
-        const dateStr = row.วันโอน || row.วันที่เคลื่อนไหวล่าสุ;
+        const dateStr = row.วันโอน || row.วันที่เคลื่อนไหวล่าสุด || row.วันที่เคลื่อนไหวล่าสุ;
         if (!dateStr || !dateStr.includes('-')) return false;
         const year = dateStr.split('-')[0];
         if (year !== selectedYear) return false;
