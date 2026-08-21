@@ -275,10 +275,8 @@ function scheduleDailyAutoSync(hour = SYNC_TARGET_HOUR, minute = SYNC_TARGET_MIN
 // ================= BOOTSTRAP ================= //
 
 async function startServer() {
-  console.clear();
   console.log('\n======================================================');
-  console.log('   🚀 EXECUTIVE DASHBOARD - LOCAL SNAPSHOT ENGINE     ');
-  console.log('      ===========================================\n');      
+  console.log('   🚀 EXECUTIVE DASHBOARD - SNAPSHOT API SERVER       ');
   console.log('======================================================\n');
 
   const host = process.env.DB_HOST;
@@ -287,47 +285,49 @@ async function startServer() {
   const database = process.env.DB_NAME;
   const password = process.env.DB_PASSWORD;
 
-  if (!host || !port || !user || !database || !password) {
-    console.error(' ไม่พบการตั้งค่าฐานข้อมูลในไฟล์ .env');
-    console.error(' กรุณากรอก DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_PASSWORD ในไฟล์ .env ให้ครบถ้วน\n');
-    process.exit(1);
-  }
+  let isPgConnected = false;
 
-  console.log(' กำลังเชื่อมต่อฐานข้อมูล...');
+  if (host && port && user && database && password) {
+    console.log('⏳ กำลังทดสอบเชื่อมต่อฐานข้อมูล PostgreSQL...');
+    try {
+      dbPool = new Pool({
+        host,
+        port: parseInt(port, 10),
+        user,
+        database,
+        password,
+        options: '-c default_transaction_read_only=on',
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000
+      });
 
-  try {
-    dbPool = new Pool({
-      host,
-      port: parseInt(port, 10),
-      user,
-      database,
-      password,
-      options: '-c default_transaction_read_only=on',
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 8000
-    });
-
-    const testClient = await dbPool.connect();
-    const testResult = await testClient.query("SELECT current_database() as db, current_user as usr, current_setting('default_transaction_read_only') as read_only;");
-    testClient.release();
-
-    console.log('\n✅ เชื่อมต่อสำเร็จ!');
-
-    const syncMeta = getSyncMetadata();
-    if (syncMeta.hasData) {
-      console.log(`\nอัปเดตข้อมูลล่าสุด: ${syncMeta.lastSyncedAt}`);
+      const testClient = await dbPool.connect();
+      await testClient.query("SELECT current_database() as db;");
+      testClient.release();
+      isPgConnected = true;
+      console.log('✅ เชื่อมต่อ PostgreSQL สดของโรงพยาบาลสำเร็จ!');
+    } catch (err) {
+      console.log('⚠️ ไม่สามารถเชื่อมต่อ PostgreSQL ได้ (อยู่นอกวง LAN หรือเซิร์ฟเวอร์ออฟไลน์):', err.message);
+      console.log('💡 ระบบจะสลับไปทำงานในโหมด Snapshot Engine (ข้อมูลแคชในเครื่อง) อัตโนมัติ\n');
+      dbPool = null;
     }
-
-    app.listen(PORT, '0.0.0.0', () => {
-      scheduleDailyAutoSync();
-    });
-
-  } catch (err) {
-    console.error('\n การเชื่อมต่อล้มเหลว');
-    console.log('\n ตรวจสอบไฟล์ .env และลองใหม่อีกครั้ง');
-    process.exit(1);
+  } else {
+    console.log('ℹ️ ไม่พบการตั้งค่าฐานข้อมูลในไฟล์ .env');
+    console.log('💡 เริ่มต้นทำงานในโหมด Snapshot Engine (แสดงข้อมูลในเครื่องและรองรับไฟล์ Excel)\n');
   }
+
+  const syncMeta = getSyncMetadata();
+  if (syncMeta.hasData) {
+    console.log(`📌 อัปเดตข้อมูลล่าสุด: ${syncMeta.lastSyncedAt}`);
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 API Server พร้อมทำงานที่ http://0.0.0.0:${PORT}`);
+    if (isPgConnected) {
+      scheduleDailyAutoSync();
+    }
+  });
 }
 
 startServer();
